@@ -1,0 +1,68 @@
+# 2020 June 3
+# https://github.com/bevry/base
+
+# System Files
+**/.DS_Store
+
+# Temp Files
+**/.docpad.db
+**/*.log
+**/*.cpuprofile
+**/*.heapsnapshot
+
+# Editor Files
+.c9/
+.vscode/
+
+# Yarn Files
+.yarn/*
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
+.pnp.*
+.pnp/
+
+# Private Files
+.env
+.idea
+.cake_task_cache
+
+# Build Caches
+build/
+bower_components/
+node_modules/
+.next/
+
+# -------------------------------------
+# CDN Inclusions, Git Exclusions
+
+# Build Outputs
+**/out.*
+**/*.out.*
+**/out/
+**/output/
+*compiled*
+edition*/
+coffeejs/
+coffee/
+es5/
+es2015/
+esnext/
+docs/
+
+# =====================================
+# CUSTOM
+
+.now
+
+# this project: Python runtime files
+__pycache__/
+*.pyc
+
+# this project: downloaded corpus archives; rebuild with eval/build_testset.py
+data/*.zip
+
+# this project: docs/ is source content here, not generated output
+!docs/
+!docs/**
