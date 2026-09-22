@@ -122,6 +122,7 @@ For `id ⇄ en` these are worse than TranslateGemma/Hy-MT2 at equal size, but th
 | model | sizes | license | Indonesian support |
 | --- | --- | --- | --- |
 | Qwen3 / Qwen3.x | 0.6B → 235B-A22B | Apache-2.0 | Yes (119 languages claimed); excellent instruction following |
+| Qwen3.8 (2026-08) | 27B dense; Flash-Next (large MoE, ~50 GB/shard GGUFs) | Apache-2.0 (27B) / Qwen terms (Flash-Next) | Yes — same multilingual recipe; **no local footprint on 16 GB** (27B dense ≈ full RAM at Q4) |
 | Gemma 3 | 1B / 4B / 12B / 27B | Gemma Terms | Yes — the TranslateGemma base (WMT24++ en→id MetricX 2.72–3.27) |
 | Aya Expanse | 8B / 32B | CC-BY-NC-4.0 | Yes — 23 languages incl. `id`; strong for its size, non-commercial |
 | Nemotron / Granite / Mistral families | various | mostly Apache-2.0 | Indonesian present but weaker coverage than Qwen |
@@ -130,6 +131,7 @@ Practical notes:
 - Always force **temperature 0** and cap output length; general LLMs add preambles/notes unless forbidden.
 - Prompt with the style you want ("formal Indonesian suitable for a bank statement" works).
 - A general 7B model usually loses to **TranslateGemma 4B** on this pair — bigger is not automatically better.
+- **Qwen3.8-LiveTranslate-Flash-Realtime** (real-time audio/video interpretation, understands 60 / speaks 29 languages) is **hosted-only**: sold on QwenCloud (Alibaba's Singapore cloud) as a paid realtime API (audio in $7.5, audio out $30 per 1M tokens), with **no weights on Hugging Face or Ollama as of 2026-09-22** — it cannot join a local stack, though its offline sibling may ship weights later. Watch the Qwen org, not resellers.
 
 ## 3. Indonesian / SEA-specialised models
 
