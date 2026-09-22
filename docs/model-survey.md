@@ -18,27 +18,20 @@ between them. Everything below was checked against the live model hubs
 | Need register/glossary/format control in one pass (subtitles, legal, redaction) | **Hy-MT2-7B** or **TranslateGemma 12B** with instructions | Both follow translation instructions (keep terms untranslated, SRT format, style) |
 | Multiple local languages (Javanese, Sundanese) as well | **SEA-LION** (`Gemma-SEA-LION-v3-9B-IT`) or **Sahabat-AI** (`llama3-8b-cpt-sahabatai-v1`) | SEA-tuned LLMs, Indonesian + regional languages |
 
-Rule of thumb: **specialised MT models (TranslateGemma, Hy-MT2) beat general local LLMs of the
-same size for Indonesian**, and a 4B specialised model is often better than a 12B general one.
+Rule of thumb: **specialised MT models (TranslateGemma, Hy-MT2) beat general local LLMs of the same size for Indonesian**, and a 4B specialised model is often better than a 12B general one.
 
 ## How this was researched
 
 - Live Hugging Face API queries (`/api/models`, `/api/datasets`) for sizes, licenses, language tags and download counts.
-- Ollama library / registry checks for what is actually pullable, plus reading the technical reports
-  ([TranslateGemma, arXiv 2601.09012](https://arxiv.org/abs/2601.09012); [Hy-MT2, arXiv 2605.22064](https://arxiv.org/abs/2605.22064)) for per-language numbers.
-- A runnable harness in `eval/` + `scripts/` that scores any of these models on FLORES-101
-  devtest, Tatoeba and hand-written "tricky case" probes (register, idioms, numbers,
-  do-not-translate entities).
+- Ollama library / registry checks for what is actually pullable, plus reading the technical reports ([TranslateGemma, arXiv 2601.09012](https://arxiv.org/abs/2601.09012); [Hy-MT2, arXiv 2605.22064](https://arxiv.org/abs/2605.22064)) for per-language numbers.
+- A runnable harness in `eval/` + `scripts/` that scores any of these models on FLORES-101 devtest, Tatoeba and hand-written "tricky case" probes (register, idioms, numbers, do-not-translate entities).
 
 
 ## 1. Purpose-built translation models (recommended)
 
 ### TranslateGemma — Google DeepMind, released 15 Jan 2026
 
-Gemma 3 fine-tuned for translation (SFT on synthetic + human parallel data, then RL against
-MetricX-QE/AutoMQM reward ensembles). Ships as **4B / 12B / 27B**, evaluated on the WMT24++
-55-language set, and it is multimodal — it keeps Gemma 3's image input, so it can translate
-**text inside images** (Vistra benchmark) without a separate OCR step.
+Gemma 3 fine-tuned for translation (SFT on synthetic + human parallel data, then RL against MetricX-QE/AutoMQM reward ensembles). Ships as **4B / 12B / 27B**, evaluated on the WMT24++ 55-language set, and it is multimodal — it keeps Gemma 3's image input, so it can translate **text inside images** (Vistra benchmark) without a separate OCR step.
 
 Published quality on Indonesian (MetricX-24, **lower is better**, WMT24++ en→id_ID):
 
@@ -47,9 +40,7 @@ Published quality on Indonesian (MetricX-24, **lower is better**, WMT24++ en→i
 | TranslateGemma | **2.07** | **2.17** | **2.63** |
 | Gemma 3 (baseline) | 2.72 | 2.84 | 3.27 |
 
-Whole-suite averages (55 pairs, WMT24++): MetricX 3.09 vs 4.04 for Gemma 3 27B; COMET22
-84.4 vs 83.1. Indonesian is in the "paired with English in both directions" list, so `id→en`
-is a trained direction, not a pivot.
+Whole-suite averages (55 pairs, WMT24++): MetricX 3.09 vs 4.04 for Gemma 3 27B; COMET22 84.4 vs 83.1. Indonesian is in the "paired with English in both directions" list, so `id→en` is a trained direction, not a pivot.
 
 - Weights: HF `google/translategemma-4b-it` / `-12b-it` / `-27b-it` — **gated** (accept Google's terms, needs an HF token).
 - Easiest local route: `ollama pull translategemma:4b` (4b/12b/27b, ~2.4M pulls, no HF account). GGUF mirrors exist (`mradermacher/*`, `bullerwins/*`), plus MLX 4-bit builds for Apple Silicon.
@@ -59,18 +50,13 @@ is a trained direction, not a pivot.
 
 ### Hy-MT2 — Tencent Hunyuan, released 21 May 2026
 
-A "fast-thinking" translation family: **1.8B dense / 7B dense / 30B-A3B MoE**, covering
-**33 languages including Indonesian** (`id`), with an explicit focus on real-world/business
-translation and *instruction following* (style control, keeping terms untranslated, delimiter
-preservation, SRT subtitles, legal redaction/anonymisation).
+A "fast-thinking" translation family: **1.8B dense / 7B dense / 30B-A3B MoE**, covering **33 languages including Indonesian** (`id`), with an explicit focus on real-world/business translation and *instruction following* (style control, keeping terms untranslated, delimiter preservation, SRT subtitles, legal redaction/anonymisation).
 
 - License: **Apache-2.0** — the cleanest licence of the high-quality group, and ungated on HF.
 - Repos: `tencent/Hy-MT2-1.8B`, `-7B`, `-30B-A3B`, plus `-FP8`, `-GGUF` and extreme quants (`-2Bit-GGUF`, `-1.25Bit-GGUF`). `tencent/Hy-MT2-1.8B-GGUF` is the most-downloaded translation repo of the set (~375k/month).
 - On-device: AngelSlim 1.25-bit quantization shrinks the 1.8B model to **440 MB** with ~1.5x speed-up; their own quantisation table shows Q4_K_M costs only ~1.3 points of the average score (1.8B: 83.49 BF16 → 82.22 Q4_K_M; 7B: 89.17 → 88.96), while 2-bit costs ~4.6 points.
 - Predecessors: `Hunyuan-MT-7B` / `Hunyuan-MT-Chimera-7B` (Sep 2025) and `Hy-MT1.5-1.8B/7B` (Dec 2025).
-- Gotcha (reproduced here): `ollama pull hf.co/tencent/Hy-MT2-1.8B-GGUF:Q4_K_M` fails with
-  *"blocked redirect to a different host"* because Hugging Face redirects to its CDN. Download the
-  GGUF with `curl -L` and register it with `ollama create` (see `scripts/pull-models.sh`).
+- Gotcha (reproduced here): `ollama pull hf.co/tencent/Hy-MT2-1.8B-GGUF:Q4_K_M` fails with *"blocked redirect to a different host"* because Hugging Face redirects to its CDN. Download the GGUF with `curl -L` and register it with `ollama create` (see `scripts/pull-models.sh`).
 
 ### Classic NMT — small, fast, boring, offline
 
@@ -83,16 +69,11 @@ preservation, SRT subtitles, legal redaction/anonymisation).
 | `facebook/m2m100_418M` / `_1.2B` | 418M–1.2B | **MIT** | Older, weaker than NLLB; commercial-friendly |
 | `google/madlad400-3b-mt` (also 7B/10B) | 3B–10B | **Apache-2.0** | 400+ languages, target-language prefix tags (`<2id>`) |
 
-These are 10–100× faster per sentence on CPU than an LLM-based translator and never "chat",
-but they cannot follow instructions and are more literal on idioms, register and entities.
-Use them for volume, not for polish.
+These are 10–100× faster per sentence on CPU than an LLM-based translator and never "chat", but they cannot follow instructions and are more literal on idioms, register and entities. Use them for volume, not for polish.
 
 ### quickmt — 185M, CC-BY-4.0, the best tiny permissive pair (verified 2026-09-21)
 
-`quickmt/quickmt-en-id` and `quickmt/quickmt-id-en` (both **CC-BY-4.0**, commercial OK) — a 185M
-transformer ("big", 8 encoder / 2 decoder layers) trained with eole and exported to
-**CTranslate2** + sentencepiece. Self-published FLORES-200 devtest numbers for `en→id`
-(sacrebleu / COMET, RTX 4070s, 1012 sentences):
+`quickmt/quickmt-en-id` and `quickmt/quickmt-id-en` (both **CC-BY-4.0**, commercial OK) — a 185M transformer ("big", 8 encoder / 2 decoder layers) trained with eole and exported to **CTranslate2** + sentencepiece. Self-published FLORES-200 devtest numbers for `en→id` (sacrebleu / COMET, RTX 4070s, 1012 sentences):
 
 | system | BLEU | chrF2 | COMET22 | time (s) |
 | --- | ---: | ---: | ---: | ---: |
@@ -102,28 +83,13 @@ transformer ("big", 8 encoder / 2 decoder layers) trained with eole and exported
 | opus-mt-en-id (Apache-2.0) | 39.71 | 66.50 | 88.24 | 3.08 |
 | m2m100_1.2B (MIT) | 42.62 | 68.04 | 89.76 | 32.40 |
 
-NLLB-1.3B-class quality, fully commercial-usable, at 185M params and ~30× NLLB's speed — the
-strongest small permissive candidate for volume/batch work found so far. Run via the `quickmt`
-pip package (or drive CTranslate2 + sentencepiece directly; the repo also loads in
-LibreTranslate). Not yet measured on this machine — backlog item in the next steps.
+NLLB-1.3B-class quality, fully commercial-usable, at 185M params and ~30× NLLB's speed — the strongest small permissive candidate for volume/batch work found so far. Run via the `quickmt` pip package (or drive CTranslate2 + sentencepiece directly; the repo also loads in LibreTranslate). Not yet measured on this machine — backlog item in the next steps.
 
 ### Newer entries worth tracking (verified against live sources, 2026-09-21)
 
-- **Meta Omnilingual MT (OMT)** — real and significant on paper: the first MT system covering
-  **1,600+ languages** (Meta AI, 17 Mar 2026), in two architectures — OMT-LLaMA (decoder-only,
-  LLaMA3 base, retrieval-augmented) and OMT-NLLB (encoder-decoder over an OmniSONAR aligned
-  space) — with 1B–8B variants reported to match or beat a 70B LLM baseline, which would make
-  the small ones very interesting for a 16 GB machine. ⚠️ **As of 2026-09-21 no public weight
-  repositories exist on Hugging Face** under `omnilingual*`, `omt-*`, or Meta's org (only
-  third-party ASR spin-offs). Meta released the paper, leaderboard and evaluation datasets
-  (BOUQuET / Met-BOUQuET), **not weights**. Watchlist until weights actually appear.
-- **Cohere Labs North Small Translate 1.0** (Sep 2026) — verified on HF: **218B total /
-  ~25B active MoE**, license **CC-BY-NC-4.0**. Vendor-claimed WMT26 leader, but BF16 weights
-  are ≈ 436 GB (not runnable locally on this class of machine) and Indonesian is not a tier-one
-  language in its card. Relevant as a quality ceiling or for multi-GPU serving only.
-- **NusaMT-7B** (`williamhtan/NusaMT-7B`) — exists, but targets **low-resource regional
-  languages** (Balinese, Javanese, …), not `id⇄en`; research-grade adoption. Only relevant if
-  your pipeline also needs those languages.
+- **Meta Omnilingual MT (OMT)** — real and significant on paper: the first MT system covering **1,600+ languages** (Meta AI, 17 Mar 2026), in two architectures — OMT-LLaMA (decoder-only, LLaMA3 base, retrieval-augmented) and OMT-NLLB (encoder-decoder over an OmniSONAR aligned space) — with 1B–8B variants reported to match or beat a 70B LLM baseline, which would make the small ones very interesting for a 16 GB machine. ⚠️ **As of 2026-09-21 no public weight repositories exist on Hugging Face** under `omnilingual*`, `omt-*`, or Meta's org (only third-party ASR spin-offs). Meta released the paper, leaderboard and evaluation datasets (BOUQuET / Met-BOUQuET), **not weights**. Watchlist until weights actually appear.
+- **Cohere Labs North Small Translate 1.0** (Sep 2026) — verified on HF: **218B total / ~25B active MoE**, license **CC-BY-NC-4.0**. Vendor-claimed WMT26 leader, but BF16 weights are ≈ 436 GB (not runnable locally on this class of machine) and Indonesian is not a tier-one language in its card. Relevant as a quality ceiling or for multi-GPU serving only.
+- **NusaMT-7B** (`williamhtan/NusaMT-7B`) — exists, but targets **low-resource regional languages** (Balinese, Javanese, …), not `id⇄en`; research-grade adoption. Only relevant if your pipeline also needs those languages.
 
 #### Reconciling a second opinion (another AI's survey, 2026-09-21)
 
@@ -151,8 +117,7 @@ Cross-checked each claim against live sources (HF API, Meta AI, GitHub, model ca
 
 ## 2. General-purpose local LLMs (good, but not specialists)
 
-For `id ⇄ en` these are worse than TranslateGemma/Hy-MT2 at equal size, but they are handy if
-you already run one model for other tasks, or need glossary constraints and long context.
+For `id ⇄ en` these are worse than TranslateGemma/Hy-MT2 at equal size, but they are handy if you already run one model for other tasks, or need glossary constraints and long context.
 
 | model | sizes | license | Indonesian support |
 | --- | --- | --- | --- |
@@ -168,9 +133,7 @@ Practical notes:
 
 ## 3. Indonesian / SEA-specialised models
 
-Trained or continual-pretrained on Indonesian (often plus Javanese/Sundanese), so they handle
-register and local entities better than generic multilingual models. None is a dedicated
-translator, so reach for them when you also need reasoning, or care about regional languages.
+Trained or continual-pretrained on Indonesian (often plus Javanese/Sundanese), so they handle register and local entities better than generic multilingual models. None is a dedicated translator, so reach for them when you also need reasoning, or care about regional languages.
 
 | model | base / size | license | notes |
 | --- | --- | --- | --- |
@@ -219,28 +182,15 @@ Hardware sizing (Q4-class weights, rules of thumb):
 
 ## 6. Battle-tested gotchas
 
-- **Gated repos.** `google/translategemma-*` requires accepting Google's terms and an HF token; the
-  Ollama build and community GGUF mirrors avoid that. `openlanguagedata/flores_plus` is auto-gated too
-  (use the `gsarti/flores_101` mirror if you cannot log in).
-- **Ollama + Hugging Face GGUFs.** `ollama pull hf.co/<repo>:<quant>` fails with
-  *"blocked redirect to a different host"* on this setup because HF 302s to its CDN. `curl -L` the
-  `.gguf` yourself, then `ollama create <name> -f Modelfile` with `FROM /path/model.gguf`.
-- **Some Hy-MT2 GGUFs need a patched llama.cpp.** Tencent notes that the GGUF quants rely on their
-  custom STQ kernel (llama.cpp PR #22836). Standard quants (`Q4_K_M`, `Q6_K`, `Q8_0`) are the safe bet
-  on stock Ollama/llama.cpp.
-- **Licences are not uniform.** Apache-2.0: Hy-MT2, OPUS-MT, M2M-100, MADLAD, Qwen3, Whisper.
-  Non-commercial: NLLB-200, Aya Expanse, SeamlessM4T. Vendor terms: Gemma (Gemma 3, TranslateGemma,
-  Gemma-SEA-LION), Llama 3 (Sahabat-AI). Check before shipping anything commercial.
-- **Generative models chat.** Expect preambles ("Here is the translation:"), explanations and
-  occasional refusals; always post-process, cap output tokens, temperature 0.
-- **Short inputs hallucinate.** One-word/three-word segments are where LLMs invent content; the classic
-  NMT models are safer for UI strings and table cells.
-- **Long documents drift.** Nothing here maintains terminology or pronouns across segments on its own;
-  chunk by paragraph and re-inject a glossary every chunk.
-- **Benchmarks lie by omission.** A model can win on aggregate chrF and still be unusable for your
-  domain — always inspect per-category scores and the raw hypotheses (`results/*.json`).
-- **Single-reference metrics under-rate valid creativity.** In our smoke run an idiom probe was
-  translated correctly but scored 39 chrF because the reference used different wording.
+- **Gated repos.** `google/translategemma-*` requires accepting Google's terms and an HF token; the Ollama build and community GGUF mirrors avoid that. `openlanguagedata/flores_plus` is auto-gated too (use the `gsarti/flores_101` mirror if you cannot log in).
+- **Ollama + Hugging Face GGUFs.** `ollama pull hf.co/<repo>:<quant>` fails with *"blocked redirect to a different host"* on this setup because HF 302s to its CDN. `curl -L` the `.gguf` yourself, then `ollama create <name> -f Modelfile` with `FROM /path/model.gguf`.
+- **Some Hy-MT2 GGUFs need a patched llama.cpp.** Tencent notes that the GGUF quants rely on their custom STQ kernel (llama.cpp PR #22836). Standard quants (`Q4_K_M`, `Q6_K`, `Q8_0`) are the safe bet on stock Ollama/llama.cpp.
+- **Licences are not uniform.** Apache-2.0: Hy-MT2, OPUS-MT, M2M-100, MADLAD, Qwen3, Whisper. Non-commercial: NLLB-200, Aya Expanse, SeamlessM4T. Vendor terms: Gemma (Gemma 3, TranslateGemma, Gemma-SEA-LION), Llama 3 (Sahabat-AI). Check before shipping anything commercial.
+- **Generative models chat.** Expect preambles ("Here is the translation:"), explanations and occasional refusals; always post-process, cap output tokens, temperature 0.
+- **Short inputs hallucinate.** One-word/three-word segments are where LLMs invent content; the classic NMT models are safer for UI strings and table cells.
+- **Long documents drift.** Nothing here maintains terminology or pronouns across segments on its own; chunk by paragraph and re-inject a glossary every chunk.
+- **Benchmarks lie by omission.** A model can win on aggregate chrF and still be unusable for your domain — always inspect per-category scores and the raw hypotheses (`results/*.json`).
+- **Single-reference metrics under-rate valid creativity.** In our smoke run an idiom probe was translated correctly but scored 39 chrF because the reference used different wording.
 
 ## 7. Decision guide
 
@@ -248,22 +198,13 @@ Hardware sizing (Q4-class weights, rules of thumb):
 there). It is a purpose-built translator with published, per-language evidence for Indonesian, and
 strong instruction following.
 
-**If you need commercial-safe weights:** Hy-MT2 (Apache-2.0) — 1.8B for CPU/laptop/edge, 7B for a
-GPU workstation, and 30B-A3B if you can host ~20 GB and want server throughput with MoE speed.
-OPUS-MT/Argos (`Apache-2.0`/`MIT`) cover the low-footprint end of the same licence story.
+**If you need commercial-safe weights:** Hy-MT2 (Apache-2.0) — 1.8B for CPU/laptop/edge, 7B for a GPU workstation, and 30B-A3B if you can host ~20 GB and want server throughput with MoE speed. OPUS-MT/Argos (`Apache-2.0`/`MIT`) cover the low-footprint end of the same licence story.
 
-**If you must run with no LLM runtime at all** (embedded, old CPUs, offline appliances):
-quickmt (185M, CC-BY-4.0 — best published chrF of the tiny tier), Argos Translate, or
-`opus-mt-id-en`/`opus-mt-en-id` via CTranslate2 — a few hundred MB of RAM, sub-second
-latency, trivially batchable.
+**If you must run with no LLM runtime at all** (embedded, old CPUs, offline appliances): quickmt (185M, CC-BY-4.0 — best published chrF of the tiny tier), Argos Translate, or `opus-mt-id-en`/`opus-mt-en-id` via CTranslate2 — a few hundred MB of RAM, sub-second latency, trivially batchable.
 
 ## Measured results on this machine
 
-Setup: AMD Ryzen 5 7640U, 12 threads, 15 GB RAM, **no GPU**, Ollama 0.34.2 (CPU inference),
-Python 3.14, `sacrebleu` 2.6 metrics. Test set produced by `eval/build_testset.py`:
-20 FLORES-101 devtest pairs (professional, formal/news), 40 Tatoeba pairs (short everyday
-sentences), 18 hand-written `id→en` + 14 `en→id` tricky cases (register, idioms, numbers,
-do-not-translate entities, long sentences). Model load time is excluded (warm-up call first).
+Setup: AMD Ryzen 5 7640U, 12 threads, 15 GB RAM, **no GPU**, Ollama 0.34.2 (CPU inference), Python 3.14, `sacrebleu` 2.6 metrics. Test set produced by `eval/build_testset.py`: 20 FLORES-101 devtest pairs (professional, formal/news), 40 Tatoeba pairs (short everyday sentences), 18 hand-written `id→en` + 14 `en→id` tricky cases (register, idioms, numbers, do-not-translate entities, long sentences). Model load time is excluded (warm-up call first).
 
 ### id → en (78 segments)
 
@@ -272,8 +213,7 @@ do-not-translate entities, long sentences). Model load time is excluded (warm-up
 | TranslateGemma 4B (`translategemma:4b`, Q4) | TranslateGemma template | **64.87** | **63.10** | **38.79** | 4.36 | 3.3 GB |
 | Hy-MT2-1.8B (Q4_K_M) | Hy-MT2 instruction | 64.35 | 62.21 | 35.10 | **1.00** | 1.2 GB |
 
-Per-category chrF (only `flores-devtest`, 20 pairs, and `tatoeba`, 40 pairs, are statistically
-meaningful; single-pair categories are directional hints):
+Per-category chrF (only `flores-devtest`, 20 pairs, and `tatoeba`, 40 pairs, are statistically meaningful; single-pair categories are directional hints):
 
 | category | TranslateGemma 4B | Hy-MT2-1.8B |
 | --- | ---: | ---: |
@@ -288,11 +228,7 @@ meaningful; single-pair categories are directional hints):
 | long-sentence (1) | 48.30 | **66.89** |
 | passive-di (1) | 69.11 | **87.53** |
 
-Both models are effectively tied on aggregate quality here (−0.5 chrF, within noise for 78
-segments), but Hy-MT2-1.8B is **4.4× faster with a third of the disk/RAM** — on a CPU-only
-machine that is the difference between 1 s and 4.4 s per segment. TranslateGemma 4B was clearly
-better at idioms, entity/number preservation and UI strings; Hy-MT2 was better on the long,
-subordinate-clause sentence, the legal passive and colloquial register.
+Both models are effectively tied on aggregate quality here (−0.5 chrF, within noise for 78 segments), but Hy-MT2-1.8B is **4.4× faster with a third of the disk/RAM** — on a CPU-only machine that is the difference between 1 s and 4.4 s per segment. TranslateGemma 4B was clearly better at idioms, entity/number preservation and UI strings; Hy-MT2 was better on the long, subordinate-clause sentence, the legal passive and colloquial register.
 
 ### en → id (14 segments, curated probes only)
 
@@ -301,51 +237,33 @@ subordinate-clause sentence, the legal passive and colloquial register.
 | TranslateGemma 4B | **80.75** | **79.96** | **62.83** | 2.84 |
 | Hy-MT2-1.8B | 78.86 | 78.25 | 57.60 | 0.94 |
 
-Sample outputs worth knowing (all three are "valid but different" from the reference, which is
-why single-reference chrF under-reports quality):
+Sample outputs worth knowing (all three are "valid but different" from the reference, which is why single-reference chrF under-reports quality):
 
-- `browser` reference `peramban`: TranslateGemma returned "Browser ini tidak didukung pada
-  perangkat Anda." — the loanword users actually say.
-- `application` reference `Permohonan`: returned "Aplikasi tersebut …" — correct for software,
-  wrong for a form submission; sense disambiguation needs context you must provide.
+- `browser` reference `peramban`: TranslateGemma returned "Browser ini tidak didukung pada perangkat Anda." — the loanword users actually say.
+- `application` reference `Permohonan`: returned "Aplikasi tersebut …" — correct for software, wrong for a form submission; sense disambiguation needs context you must provide.
 - `always in sync` reference `selalu tersinkronisasi`: returned "selalu sinkron" — shorter, natural.
 
-The full per-segment source/reference/hypothesis dumps are in `results/*.json`, and the generated
-summary table is in `results/results.md`.
+The full per-segment source/reference/hypothesis dumps are in `results/*.json`, and the generated summary table is in `results/results.md`.
 
 ### Caveats on these numbers
 
-- 78 (+14) segments is a *sanity* set: enough to catch systematic problems, not enough to rank two
-  models 1 chrF apart. Treat the category table as a list of things to test with your own data.
+- 78 (+14) segments is a *sanity* set: enough to catch systematic problems, not enough to rank two models 1 chrF apart. Treat the category table as a list of things to test with your own data.
 - One reference per segment penalises valid alternatives, as the examples above show.
-- CPU-only timings say nothing about GPU throughput; on a GPU both models would be 10–50× faster,
-  and the 12B/27B variants become practical.
-- The Apple/Intel/consumer-GPU picture differs: on Apple Silicon use the MLX 4-bit builds
-  (`mlx-community/translategemma-*-4bit`) or LM Studio.
+- CPU-only timings say nothing about GPU throughput; on a GPU both models would be 10–50× faster, and the 12B/27B variants become practical.
+- The Apple/Intel/consumer-GPU picture differs: on Apple Silicon use the MLX 4-bit builds (`mlx-community/translategemma-*-4bit`) or LM Studio.
 
-**If you need Indonesian plus Javanese/Sundanese/Betawi robustness:** NLLB-200 (non-commercial) for
-coverage, or Sahabat-AI / SEA-LION for an LLM that understands the regional mix.
+**If you need Indonesian plus Javanese/Sundanese/Betawi robustness:** NLLB-200 (non-commercial) for coverage, or Sahabat-AI / SEA-LION for an LLM that understands the regional mix.
 
-**If you need to translate images, audio or subtitles:** TranslateGemma (text in images) + Whisper
-(audio → English) + Hy-MT2 (SRT/instruction-following cues).
+**If you need to translate images, audio or subtitles:** TranslateGemma (text in images) + Whisper (audio → English) + Hy-MT2 (SRT/instruction-following cues).
 
 ## 8. Suggested next steps
 
-1. Replace `data/curated.jsonl` references with real references from your own domain (support tickets,
-   invoices, product copy) — 50–100 segments is enough to re-rank the candidates for your use case.
+1. Replace `data/curated.jsonl` references with real references from your own domain (support tickets, invoices, product copy) — 50–100 segments is enough to re-rank the candidates for your use case.
 2. Run head-to-heads with `scripts/run-bench.sh` on that set; keep TranslateGemma 4B/12B and Hy-MT2 1.8B/7B.
-3. Benchmark the classic NMT tier now that CPU torch is installed: `pip install transformers
-   sentencepiece`, then e.g. `python3 eval/run_eval.py --backend transformers --model
-   Helsinki-NLP/opus-mt-id-en --family opus --prompt-style none --src id --tgt en --name
-   opus-mt-id-en` (the guard sizes opus-mt at ~1.5 GB — run with ~3.5 GB free, or pass
-   `--est-gb 0.8` on a tight box). Same for `quickmt` once `pip install quickmt` (pulls
-   CTranslate2) is in — it is the strongest permissive tiny-tier candidate found so far.
-4. Add a neural metric (COMET-22 or MetricX-24) if GPU time is available; chrF alone cannot tell you
-   which of two fluent outputs is better.
-5. Build the glossary/do-not-translate layer and the number/date/currency post-processor described in
-   [indonesian-notes.md](indonesian-notes.md) — that buys more quality than swapping models.
-6. Consider fine-tuning only after that: OPUS/FLORES plus your own parallel data on a 1.8B–7B model
-   (LoRA) is cheap, and both Hy-MT2 and TranslateGemma ship training recipes.
+3. Benchmark the classic NMT tier now that CPU torch is installed: `pip install transformers sentencepiece`, then e.g. `python3 eval/run_eval.py --backend transformers --model Helsinki-NLP/opus-mt-id-en --family opus --prompt-style none --src id --tgt en --name opus-mt-id-en` (the guard sizes opus-mt at ~1.5 GB — run with ~3.5 GB free, or pass `--est-gb 0.8` on a tight box). Same for `quickmt` once `pip install quickmt` (pulls CTranslate2) is in — it is the strongest permissive tiny-tier candidate found so far.
+4. Add a neural metric (COMET-22 or MetricX-24) if GPU time is available; chrF alone cannot tell you which of two fluent outputs is better.
+5. Build the glossary/do-not-translate layer and the number/date/currency post-processor described in [indonesian-notes.md](indonesian-notes.md) — that buys more quality than swapping models.
+6. Consider fine-tuning only after that: OPUS/FLORES plus your own parallel data on a 1.8B–7B model (LoRA) is cheap, and both Hy-MT2 and TranslateGemma ship training recipes.
 
 **Metrics.** For `id ⇄ en` prefer **chrF/chrF++** over BLEU (Indonesian's affixation and
 compound reduplication make BLEU unstable on small sets) and add a **neural metric**

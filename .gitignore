@@ -63,6 +63,9 @@ __pycache__/
 # this project: downloaded corpus archives; rebuild with eval/build_testset.py
 data/*.zip
 
+# this project: reflow staging (bevry-vibes/reflow)
+.temp-reflow/
+
 # this project: docs/ is source content here, not generated output
 !docs/
 !docs/**
