@@ -1,0 +1,665 @@
+{
+  "label": "kagi-deno-iden",
+  "backend": "kagi",
+  "model": "kagi-translate-web",
+  "prompt_style": "none",
+  "src": "id",
+  "tgt": "en",
+  "pairs": 78,
+  "metrics": {
+    "bleu": 53.12,
+    "chrf": 74.82,
+    "chrfpp": 73.2
+  },
+  "metric_backend": "sacrebleu",
+  "exact_match_rate": 19.23,
+  "seconds_total": 19.92,
+  "seconds_per_sentence": 0.255,
+  "chrF_by_category": {
+    "acronym-entity": 100.0,
+    "colloquial-register": 85.19,
+    "dates": 79.44,
+    "do-not-translate": 100.0,
+    "flores-devtest": 75.81,
+    "formal-letter": 63.74,
+    "greeting-register": 77.28,
+    "idiom": 46.0,
+    "legal-admin": 100.0,
+    "long-sentence": 77.31,
+    "medical-term": 77.59,
+    "news-quote": 79.06,
+    "numbers-currency": 100.0,
+    "passive-di": 89.99,
+    "reduplication": 88.55,
+    "tatoeba": 76.72,
+    "technical-ui": 94.74,
+    "time-expression": 55.31
+  },
+  "timestamp": "2026-09-23T06:24:12+00:00",
+  "samples": [
+    {
+      "id": "id-en-001",
+      "category": "formal-letter",
+      "source": "Dengan hormat, kami mengundang Bapak/Ibu untuk menghadiri rapat koordinasi pada hari Selasa, 3 Maret 2026, pukul 09.00 WIB.",
+      "reference": "Dear Sir/Madam, we hereby invite you to attend a coordination meeting on Tuesday, 3 March 2026, at 09:00 Western Indonesian Time.",
+      "hypothesis": "Respectfully, we invite you to attend a coordination meeting on Tuesday, March 3, 2026, at 09:00 WIB.",
+      "chrf": 63.74
+    },
+    {
+      "id": "id-en-002",
+      "category": "colloquial-register",
+      "source": "Gue tuh udah bilang dari kemarin, jangan sampai kejadian lagi!",
+      "reference": "I told you yesterday, don't let it happen again!",
+      "hypothesis": "I already told you yesterday, don't let this happen again!",
+      "chrf": 85.19
+    },
+    {
+      "id": "id-en-003",
+      "category": "idiom",
+      "source": "Dia besar kepala sejak jadi juara kelas.",
+      "reference": "He has been arrogant ever since he became the top student in his class.",
+      "hypothesis": "He's been stuck-up ever since he became the top of the class.",
+      "chrf": 60.1
+    },
+    {
+      "id": "id-en-004",
+      "category": "idiom",
+      "source": "Jangan panjang tangan di rumah orang.",
+      "reference": "Don't take things that aren't yours in someone else's house.",
+      "hypothesis": "Don't be a thief in other people's houses.",
+      "chrf": 31.9
+    },
+    {
+      "id": "id-en-005",
+      "category": "legal-admin",
+      "source": "Kartu Tanda Penduduk elektronik wajib diperbaharui setiap sepuluh tahun.",
+      "reference": "Electronic identity cards must be renewed every ten years.",
+      "hypothesis": "Electronic identity cards must be renewed every ten years.",
+      "chrf": 100.0
+    },
+    {
+      "id": "id-en-006",
+      "category": "medical-term",
+      "source": "Pasien didiagnosis demam berdarah dan harus dirawat inap.",
+      "reference": "The patient was diagnosed with dengue fever and had to be hospitalised.",
+      "hypothesis": "The patient has been diagnosed with dengue fever and must be hospitalized.",
+      "chrf": 77.59
+    },
+    {
+      "id": "id-en-007",
+      "category": "numbers-currency",
+      "source": "Harga tiket Rp1.250.000 untuk dewasa dan Rp750.000 untuk anak-anak.",
+      "reference": "Ticket prices are Rp1,250,000 for adults and Rp750,000 for children.",
+      "hypothesis": "Ticket prices are Rp1,250,000 for adults and Rp750,000 for children.",
+      "chrf": 100.0
+    },
+    {
+      "id": "id-en-008",
+      "category": "dates",
+      "source": "Pendaftaran dibuka dari 1 Januari sampai 31 Maret 2026.",
+      "reference": "Registration is open from 1 January to 31 March 2026.",
+      "hypothesis": "Registration is open from January 1st to March 31st, 2026.",
+      "chrf": 79.44
+    },
+    {
+      "id": "id-en-009",
+      "category": "technical-ui",
+      "source": "Terjadi kesalahan saat mengunggah berkas, silakan coba lagi nanti.",
+      "reference": "An error occurred while uploading the file; please try again later.",
+      "hypothesis": "An error occurred while uploading the file, please try again later.",
+      "chrf": 94.74
+    },
+    {
+      "id": "id-en-010",
+      "category": "reduplication",
+      "source": "Anak-anak bermain layang-layang di sawah pada sore hari.",
+      "reference": "The children were flying kites in the rice fields in the afternoon.",
+      "hypothesis": "Children are flying kites in the rice fields in the afternoon.",
+      "chrf": 88.55
+    },
+    {
+      "id": "id-en-011",
+      "category": "passive-di",
+      "source": "Undang-undang itu disahkan oleh Dewan Perwakilan Rakyat minggu lalu.",
+      "reference": "The bill was passed by the House of Representatives last week.",
+      "hypothesis": "The law was passed by the House of Representatives last week.",
+      "chrf": 89.99
+    },
+    {
+      "id": "id-en-012",
+      "category": "acronym-entity",
+      "source": "Kemenkeu menargetkan pertumbuhan ekonomi 5,2 persen tahun depan.",
+      "reference": "The Ministry of Finance is targeting 5.2 percent economic growth next year.",
+      "hypothesis": "The Ministry of Finance is targeting 5.2 percent economic growth next year.",
+      "chrf": 100.0
+    },
+    {
+      "id": "id-en-013",
+      "category": "long-sentence",
+      "source": "Meskipun hujan deras mengguyur Jakarta sejak pagi, para pedagang tetap berjualan karena mereka harus menafkahi keluarga.",
+      "reference": "Although heavy rain had been pouring over Jakarta since morning, the traders kept selling because they had to support their families.",
+      "hypothesis": "Even though heavy rain has been pouring over Jakarta since morning, the vendors keep selling because they have to provide for their families.",
+      "chrf": 77.31
+    },
+    {
+      "id": "id-en-014",
+      "category": "greeting-register",
+      "source": "Selamat pagi, apa kabar? Semoga sehat selalu.",
+      "reference": "Good morning, how are you? I hope you are always in good health.",
+      "hypothesis": "Good morning, how are you? I hope you're always healthy.",
+      "chrf": 77.28
+    },
+    {
+      "id": "id-en-015",
+      "category": "time-expression",
+      "source": "Kemarin lusa kami baru tiba dari Surabaya.",
+      "reference": "We only arrived from Surabaya two days ago.",
+      "hypothesis": "The day before yesterday we just arrived from Surabaya.",
+      "chrf": 55.31
+    },
+    {
+      "id": "id-en-016",
+      "category": "do-not-translate",
+      "source": "Setel ulang kata sandi Anda di halaman Setelan > Keamanan.",
+      "reference": "Reset your password on the Settings > Security page.",
+      "hypothesis": "Reset your password on the Settings > Security page.",
+      "chrf": 100.0
+    },
+    {
+      "id": "id-en-017",
+      "category": "do-not-translate",
+      "source": "Kirim surel ke support@example.com paling lambat besok.",
+      "reference": "Send an email to support@example.com by tomorrow at the latest.",
+      "hypothesis": "Send an email to support@example.com by tomorrow at the latest.",
+      "chrf": 100.0
+    },
+    {
+      "id": "id-en-018",
+      "category": "news-quote",
+      "source": "\"Kami akan terus mengawal kasus ini sampai tuntas,\" ujar Jaksa Agung.",
+      "reference": "\"We will keep pursuing this case until it is resolved,\" said the Attorney General.",
+      "hypothesis": "\"We will continue to oversee this case until it is fully resolved,\" said the Attorney General.",
+      "chrf": 79.06
+    },
+    {
+      "id": "flores-1",
+      "category": "flores-devtest",
+      "source": "“Saat ini ada mencit umur 4 bulan nondiabetes yang dulunya diabetes,” tambahnya.",
+      "reference": "\"We now have 4-month-old mice that are non-diabetic that used to be diabetic,\" he added.",
+      "hypothesis": "\"Currently, there are 4-month-old non-diabetic mice that were previously diabetic,\" he added.",
+      "chrf": 64.22
+    },
+    {
+      "id": "flores-2",
+      "category": "flores-devtest",
+      "source": "Dr. Ehud Ur, profesor kedokteran di Dalhousie University di Halifax, Nova Scotia dan ketua divisi klinis dan ilmiah di Perhimpunan Diabetes Kanada memperingatkan bahwa penelitiannya masih berada di tahap awal.",
+      "reference": "Dr. Ehud Ur, professor of medicine at Dalhousie University in Halifax, Nova Scotia and chair of the clinical and scientific division of the Canadian Diabetes Association cautioned that the research is still in its early days.",
+      "hypothesis": "Dr. Ehud Ur, a professor of medicine at Dalhousie University in Halifax, Nova Scotia and chair of the clinical and scientific division of the Canadian Diabetes Association, warns that the research is still in its early stages.",
+      "chrf": 91.83
+    },
+    {
+      "id": "flores-3",
+      "category": "flores-devtest",
+      "source": "Seperti halnya ahli-ahli lain, dia merasa skeptis apakah diabetes dapat disembuhkan, menegaskan bahwa penemuan-penemuan ini tidak relevan dengan orang-orang yang telah mengidap diabetes Jenis 1.",
+      "reference": "Like some other experts, he is skeptical about whether diabetes can be cured, noting that these findings have no relevance to people who already have Type 1 diabetes.",
+      "hypothesis": "Like other experts, he is skeptical about whether diabetes can be cured, emphasizing that these findings are irrelevant to people who already have Type 1 diabetes.",
+      "chrf": 85.3
+    },
+    {
+      "id": "flores-4",
+      "category": "flores-devtest",
+      "source": "Sara Danius, sekretaris permanen Komite Nobel Literatur di Akademi Swedia, pada hari Senin mengumumkan kepada publik selama berlangsungnya program radio di Sveriges Radio di Swedia bahwa komite tersebut tidak bisa menghubungi Bob Dylan secara langsung untuk menyampaikan kemenangannya atas Hadiah Nobel 2016 di bidang Literatur. Sara akhirnya menyerah menghubunginya.",
+      "reference": "On Monday, Sara Danius, permanent secretary of the Nobel Committee for Literature at the Swedish Academy, publicly announced during a radio program on Sveriges Radio in Sweden the committee, unable to reach Bob Dylan directly about winning the 2016 Nobel Prize in Literature, had abandoned its efforts to reach him.",
+      "hypothesis": "Sara Danius, the permanent secretary of the Nobel Committee for Literature at the Swedish Academy, announced publicly on Monday during a radio program on Sveriges Radio in Sweden that the committee has been unable to contact Bob Dylan directly to inform him of his 2016 Nobel Prize in Literature win. Sara has finally given up on trying to reach him.",
+      "chrf": 80.04
+    },
+    {
+      "id": "flores-5",
+      "category": "flores-devtest",
+      "source": "\"Danius berkata, \"Saat ini kita tidak melakukan apa-apa. Saya sudah menelepon dan mengirimkan surel kepada kolaborator terdekatnya dan memperoleh balasan yang sangat bersahabat. Untuk saat ini hal tersebut sudah cukup.\"",
+      "reference": "Danius said, \"Right now we are doing nothing. I have called and sent emails to his closest collaborator and received very friendly replies. For now, that is certainly enough.\"",
+      "hypothesis": "Danius said, \"At the moment we are doing nothing. I have called and emailed his closest collaborators and received very friendly replies. For now, that is enough.\"",
+      "chrf": 80.86
+    },
+    {
+      "id": "flores-6",
+      "category": "flores-devtest",
+      "source": "Sebelumnya, CEO Ring, Jamie Siminoff, berkomentar bahwa perusahaan tersebut bermula saat bel rumahnya tidak terdengar dari tokonya yang berada di garasi.",
+      "reference": "Previously, Ring's CEO, Jamie Siminoff, remarked the company started when his doorbell wasn't audible from his shop in his garage.",
+      "hypothesis": "Previously, Ring CEO Jamie Siminoff commented that the company started when he couldn't hear his doorbell from his garage workshop.",
+      "chrf": 66.95
+    },
+    {
+      "id": "flores-7",
+      "category": "flores-devtest",
+      "source": "Ia melakukan pembuatan bel pintu dengan teknologi WiFi, katanya.",
+      "reference": "He built a WiFi door bell, he said.",
+      "hypothesis": "He said he's making a doorbell using WiFi technology.",
+      "chrf": 42.87
+    },
+    {
+      "id": "flores-8",
+      "category": "flores-devtest",
+      "source": "Siminoff mengatakan penjualan meningkat setelah ia muncul di episode Shark Tank 2013, ketika panel acara tersebut menolak membiayai perusahaan rintisan.",
+      "reference": "Siminoff said sales boosted after his 2013 appearance in a Shark Tank episode where the show panel declined funding the startup.",
+      "hypothesis": "Siminoff said sales spiked after he appeared on a 2013 episode of Shark Tank, when the show's panel refused to fund the startup.",
+      "chrf": 63.01
+    },
+    {
+      "id": "flores-9",
+      "category": "flores-devtest",
+      "source": "Di akhir tahun 2017, Siminoff muncul di saluran televisi belanja QVC.",
+      "reference": "In late 2017, Siminoff appeared on shopping television channel QVC.",
+      "hypothesis": "At the end of 2017, Siminoff appeared on the QVC home shopping channel.",
+      "chrf": 63.4
+    },
+    {
+      "id": "flores-10",
+      "category": "flores-devtest",
+      "source": "Ring juga menyelesaikan sebuah tuntutan hukum terhadap perusahaan keamanan saingan, ADT Corporation.",
+      "reference": "Ring also settled a lawsuit with competing security company, the ADT Corporation.",
+      "hypothesis": "Ring also settled a lawsuit against rival security company ADT Corporation.",
+      "chrf": 72.72
+    },
+    {
+      "id": "flores-11",
+      "category": "flores-devtest",
+      "source": "Walau ada satu vaksin eksperimental yang tampaknya mampu mengurangi kematian akibat Ebola, sampai saat ini belum ada obat yang jelas-jelas terbukti cocok untuk mengobati infeksi yang ada.",
+      "reference": "While one experimental vaccine appears able to reduce Ebola mortality, up until now, no drugs have been clearly demonstrated suitable for treating existing infection.",
+      "hypothesis": "While there is one experimental vaccine that appears to be capable of reducing deaths from Ebola, to date there is no drug that has been clearly proven suitable for treating existing infections.",
+      "chrf": 64.39
+    },
+    {
+      "id": "flores-12",
+      "category": "flores-devtest",
+      "source": "ZMapp yang menjadi salah satu koktail antibodi awalnya di lapangan memunculkan harapan, tetapi beberapa studi formal mengindikasikan bahwa manfaatnya dalam mencegah kematian lebih sedikit dibanding yang diharapkan.",
+      "reference": "One antibody cocktail, ZMapp, initially showed promise in the field, but formal studies indicated it had less benefit than sought in preventing death.",
+      "hypothesis": "ZMapp, which was one of the initial antibody cocktails, initially raised hopes in the field, but several formal studies indicated that its benefits in preventing death were less than expected.",
+      "chrf": 69.88
+    },
+    {
+      "id": "flores-13",
+      "category": "flores-devtest",
+      "source": "Dalam uji coba PALM, ZMapp berfungsi sebagai kontrol, yang berarti para ilmuwan menggunakannya sebagai dasar dan membandingkan tiga perlakuan lain dengannya.",
+      "reference": "In the PALM trial, ZMapp served as a control, meaning scientists used it as a baseline and compared the three other treatments to it.",
+      "hypothesis": "In the PALM trial, ZMapp served as the control, meaning scientists used it as a baseline and compared the other three treatments against it.",
+      "chrf": 91.11
+    },
+    {
+      "id": "flores-14",
+      "category": "flores-devtest",
+      "source": "USA Gymnastics mendukung surat dari Komite Olimpiade Amerika Serikat dan menerima kebutuhan mutlak keluarga Olimpiade dalam mempromosikan lingkungan yang aman bagi seluruh atlet kita.",
+      "reference": "USA Gymnastics supports the United States Olympic Committee's letter and accepts the absolute need of the Olympic family to promote a safe environment for all of our athletes.",
+      "hypothesis": "USA Gymnastics supports the letter from the United States Olympic Committee and accepts the absolute need for the Olympic family to promote a safe environment for all our athletes.",
+      "chrf": 91.55
+    },
+    {
+      "id": "flores-15",
+      "category": "flores-devtest",
+      "source": "Kami setuju dengan pernyataan USOC, bahwa demi kepentingan para atlet dan klub kami, serta olahraga mereka, lebih baik untuk ke depannya melakukan perubahan berarti di dalam organisasi kami, ketimbang melakukan pembatalan sertifikasi.",
+      "reference": "We agree with the USOC's statement that the interests of our athletes and clubs, and their sport, may be better served by moving forward with meaningful change within our organization, rather than decertification.",
+      "hypothesis": "We agree with the USOC's statement that, in the best interest of our athletes and clubs, as well as their sport, it is better to make meaningful changes within our organization moving forward rather than proceeding with decertification.",
+      "chrf": 80.07
+    },
+    {
+      "id": "flores-16",
+      "category": "flores-devtest",
+      "source": "USA Gymnastics mendukung penyelidikan independen yang mungkin mengungkap bagaimana penyalahgunaan proporsi yang dijelaskan dengan begitu berani oleh para penyintas Larry Nassar dapat tidak terdeteksi selama sekian lama dan merangkul setiap perubahan yang diperlukan dan sesuai.",
+      "reference": "USA Gymnastics supports an independent investigation that may shine light on how abuse of the proportion described so courageously by the survivors of Larry Nassar could have gone undetected for so long and embraces any necessary and appropriate changes.",
+      "hypothesis": "USA Gymnastics supports an independent investigation that may reveal how the abuse of such proportions, so bravely described by Larry Nassar's survivors, could go undetected for so long and embraces every necessary and appropriate change.",
+      "chrf": 74.71
+    },
+    {
+      "id": "flores-17",
+      "category": "flores-devtest",
+      "source": "USA Gymnastics dan USOC mempunyai tujuan yang sama - mengupayakan agar olahraga senam dan lainnya dapat menjadi seaman mungkin bagi para atlet saat mereka mengejar impian mereka dalam lingkungan yang aman, positif, dan berdaya.",
+      "reference": "USA Gymnastics and the USOC have the same goal — making the sport of gymnastics, and others, as safe as possible for athletes to follow their dreams in a safe, positive and empowered environment.",
+      "hypothesis": "USA Gymnastics and the USOC share the same goal—striving to make gymnastics and other sports as safe as possible for athletes as they pursue their dreams in a safe, positive, and empowering environment.",
+      "chrf": 77.34
+    },
+    {
+      "id": "flores-18",
+      "category": "flores-devtest",
+      "source": "Sepanjang tahun 1960-an, Brzezinski bekerja untuk John F. Kennedy sebagai penasihatnya dan kemudian bekerja di pemerintahan Lyndon B. Johnson.",
+      "reference": "Throughout 1960s, Brzezinski worked for John F. Kennedy as his advisor and then the Lyndon B. Johnson administration.",
+      "hypothesis": "Throughout the 1960s, Brzezinski worked for John F. Kennedy as an advisor and later served in the Lyndon B. Johnson administration.",
+      "chrf": 88.71
+    },
+    {
+      "id": "flores-19",
+      "category": "flores-devtest",
+      "source": "Selama seleksi tahun 1976, ia menasihati Carter tentang kebijakan luar negeri, kemudian menjabat sebagai Penasihat Keamanan Nasional (NSA) dari tahun 1977 hingga tahun 1981, menggantikan Henry Kissinger.",
+      "reference": "During the 1976 selections he advised Carter on foreign policy, then served as National Security Advisor (NSA) from 1977 to 1981, succeeding Henry Kissinger.",
+      "hypothesis": "During the 1976 election, he advised Carter on foreign policy, then served as National Security Advisor (NSA) from 1977 to 1981, succeeding Henry Kissinger.",
+      "chrf": 95.65
+    },
+    {
+      "id": "flores-20",
+      "category": "flores-devtest",
+      "source": "Sebagai NSA, ia mendampingi Carter dalam menangani persoalan diplomatik luar negeri, misalnya Perjanjian Camp David tahun 1978, normalisasi hubungan AS-China di akhir 1970-an, Revolusi Iran yang mengarah pada krisis tawanan Iran tahun 1979, dan invasi Soviet di Afghanistan tahun 1979.",
+      "reference": "As NSA, he assisted Carter in diplomatically handling world affairs, such as the Camp David Accords, 1978; normalizing US–China relations thought the late 1970s; the Iranian Revolution, which led to the Iran hostage crisis, 1979; and the Soviet invasion in Afghanistan, 1979.",
+      "hypothesis": "As NSA, he accompanied Carter in handling foreign diplomatic issues, such as the 1978 Camp David Accords, the normalization of US-China relations in the late 1970s, the Iranian Revolution that led to the 1979 Iran hostage crisis, and the 1979 Soviet invasion of Afghanistan.",
+      "chrf": 71.52
+    },
+    {
+      "id": "tatoeba-0000",
+      "category": "tatoeba",
+      "source": "Dia seorang penyombong.",
+      "reference": "He's a braggart.",
+      "hypothesis": "He's a show-off.",
+      "chrf": 38.71
+    },
+    {
+      "id": "tatoeba-0001",
+      "category": "tatoeba",
+      "source": "Pembaca, aku menikahinya.",
+      "reference": "Reader, I married him.",
+      "hypothesis": "Reader, I married him.",
+      "chrf": 100.0
+    },
+    {
+      "id": "tatoeba-0002",
+      "category": "tatoeba",
+      "source": "Selamat hari kemerdekaan!",
+      "reference": "Happy Independence Day!",
+      "hypothesis": "Happy Independence Day!",
+      "chrf": 100.0
+    },
+    {
+      "id": "tatoeba-0003",
+      "category": "tatoeba",
+      "source": "Apa komputer ini terhubung pada internet?",
+      "reference": "Is this computer connected to the Internet?",
+      "hypothesis": "Is this computer connected to the internet?",
+      "chrf": 100.0
+    },
+    {
+      "id": "tatoeba-0004",
+      "category": "tatoeba",
+      "source": "Saya belum bisa bicara Bahasa Indonesia dengan lancar.",
+      "reference": "I can't speak fluent Indonesian yet.",
+      "hypothesis": "I can't speak Indonesian fluently yet.",
+      "chrf": 82.64
+    },
+    {
+      "id": "tatoeba-0005",
+      "category": "tatoeba",
+      "source": "Aku tidak berpikir bahwa aku bisa membuatmu memahami betapa sulitnya itu.",
+      "reference": "I don't think I can get you to understand how difficult that is.",
+      "hypothesis": "I don't think I can make you understand how difficult it was.",
+      "chrf": 74.19
+    },
+    {
+      "id": "tatoeba-0006",
+      "category": "tatoeba",
+      "source": "Aku sangat suka dengan piza.",
+      "reference": "I like pizza very much.",
+      "hypothesis": "I really love pizza.",
+      "chrf": 34.25
+    },
+    {
+      "id": "tatoeba-0007",
+      "category": "tatoeba",
+      "source": "Saya akan menemui ibu saya di stasiun pada pukul 4 tepat.",
+      "reference": "I am meeting my mother at the station at 4 o'clock.",
+      "hypothesis": "I'm meeting my mother at the station at 4 o'clock sharp.",
+      "chrf": 89.0
+    },
+    {
+      "id": "tatoeba-0008",
+      "category": "tatoeba",
+      "source": "Saya berusia 18 tahun.",
+      "reference": "I'm 18 years old.",
+      "hypothesis": "I am 18 years old.",
+      "chrf": 83.83
+    },
+    {
+      "id": "tatoeba-0009",
+      "category": "tatoeba",
+      "source": "Aku tidak pernah sekalipun bertemu dengannya.",
+      "reference": "I haven't met him even once.",
+      "hypothesis": "I haven't met him even once.",
+      "chrf": 100.0
+    },
+    {
+      "id": "tatoeba-0010",
+      "category": "tatoeba",
+      "source": "Saya membaca buku-buku baru",
+      "reference": "I read new books.",
+      "hypothesis": "I am reading new books",
+      "chrf": 62.86
+    },
+    {
+      "id": "tatoeba-0011",
+      "category": "tatoeba",
+      "source": "Banyak pria menumbuhkan janggut hanya karena mereka malas bercukur.",
+      "reference": "Many men grow beards because they're too lazy to shave.",
+      "hypothesis": "A lot of guys grow beards just because they're too lazy to shave.",
+      "chrf": 78.76
+    },
+    {
+      "id": "tatoeba-0012",
+      "category": "tatoeba",
+      "source": "Tom laki-laki pertama yang membuatku patah hati.",
+      "reference": "Tom was the first guy who broke my heart.",
+      "hypothesis": "Tom was the first guy who broke my heart.",
+      "chrf": 100.0
+    },
+    {
+      "id": "tatoeba-0013",
+      "category": "tatoeba",
+      "source": "Aku tidak ingin hidup selamanya.",
+      "reference": "I don't want to live forever.",
+      "hypothesis": "I don't want to live forever.",
+      "chrf": 100.0
+    },
+    {
+      "id": "tatoeba-0014",
+      "category": "tatoeba",
+      "source": "Dia harus mempertanggungjawabkan perbuatannya.",
+      "reference": "He has to take responsibility of his actions.",
+      "hypothesis": "He must be held accountable for his actions.",
+      "chrf": 38.37
+    },
+    {
+      "id": "tatoeba-0015",
+      "category": "tatoeba",
+      "source": "Aku agak gugup.",
+      "reference": "I was kind of nervous.",
+      "hypothesis": "I'm a bit nervous.",
+      "chrf": 41.87
+    },
+    {
+      "id": "tatoeba-0016",
+      "category": "tatoeba",
+      "source": "Dia menuangkan air mendidih ke dalam cangkir.",
+      "reference": "She poured boiling water into the cup.",
+      "hypothesis": "He poured boiling water into the cup.",
+      "chrf": 95.62
+    },
+    {
+      "id": "tatoeba-0017",
+      "category": "tatoeba",
+      "source": "Apakah kamu baik-baik saja, Tom?",
+      "reference": "Are you feeling all right now, Tom?",
+      "hypothesis": "Are you okay, Tom?",
+      "chrf": 36.44
+    },
+    {
+      "id": "tatoeba-0018",
+      "category": "tatoeba",
+      "source": "Kamu bilang apa ke Paula?",
+      "reference": "What did you say to Paula?",
+      "hypothesis": "What did you say to Paula?",
+      "chrf": 100.0
+    },
+    {
+      "id": "tatoeba-0019",
+      "category": "tatoeba",
+      "source": "Saya pesan dua bufet santap siang.",
+      "reference": "Two for the lunch buffet, please.",
+      "hypothesis": "I'd like to order two lunch buffets.",
+      "chrf": 47.83
+    },
+    {
+      "id": "tatoeba-0020",
+      "category": "tatoeba",
+      "source": "Kenapa orang selalu terlalu sinis.",
+      "reference": "Why are people always so cynical?",
+      "hypothesis": "Why are people always so cynical.",
+      "chrf": 94.36
+    },
+    {
+      "id": "tatoeba-0021",
+      "category": "tatoeba",
+      "source": "Bahasa adalah subjek dari perubahan yang konstan.",
+      "reference": "Languages are subject to constant change.",
+      "hypothesis": "Language is subject to constant change.",
+      "chrf": 83.96
+    },
+    {
+      "id": "tatoeba-0022",
+      "category": "tatoeba",
+      "source": "Kamu bekerja terlalu keras.",
+      "reference": "You work too hard.",
+      "hypothesis": "You're working too hard.",
+      "chrf": 67.74
+    },
+    {
+      "id": "tatoeba-0023",
+      "category": "tatoeba",
+      "source": "Saya sudah menunggu selama dua jam. Saya tidak bisa menunggu lebih lama lagi.",
+      "reference": "I've already waited two hours. I can't wait any longer.",
+      "hypothesis": "I've been waiting for two hours. I can't wait any longer.",
+      "chrf": 74.68
+    },
+    {
+      "id": "tatoeba-0024",
+      "category": "tatoeba",
+      "source": "Dia memiliki banyak untang.",
+      "reference": "He has a lot of debts.",
+      "hypothesis": "He has a lot of debt.",
+      "chrf": 89.2
+    },
+    {
+      "id": "tatoeba-0025",
+      "category": "tatoeba",
+      "source": "FBI mencoba untuk menangkap Dan, tapi dia berhasil melarikan diri.",
+      "reference": "The FBI tried to apprehend Dan, but he managed to escape.",
+      "hypothesis": "The FBI tried to catch Dan, but he managed to get away.",
+      "chrf": 68.92
+    },
+    {
+      "id": "tatoeba-0026",
+      "category": "tatoeba",
+      "source": "Saudara laki-lakiku adalah lumba-lumba.",
+      "reference": "My brothers are dolphins.",
+      "hypothesis": "My brother is a dolphin.",
+      "chrf": 63.79
+    },
+    {
+      "id": "tatoeba-0027",
+      "category": "tatoeba",
+      "source": "Selamat malam nona-nona.",
+      "reference": "Goodnight, ladies.",
+      "hypothesis": "Good evening, ladies.",
+      "chrf": 58.93
+    },
+    {
+      "id": "tatoeba-0028",
+      "category": "tatoeba",
+      "source": "Aku benar-benar membutuhkan bantuanmu.",
+      "reference": "I really do need your help.",
+      "hypothesis": "I really need your help.",
+      "chrf": 84.3
+    },
+    {
+      "id": "tatoeba-0029",
+      "category": "tatoeba",
+      "source": "Apakah Tom masih sakit?",
+      "reference": "Is Tom still sick?",
+      "hypothesis": "Is Tom still sick?",
+      "chrf": 100.0
+    },
+    {
+      "id": "tatoeba-0030",
+      "category": "tatoeba",
+      "source": "Saya tidak bisa menangani ini sekarang.",
+      "reference": "I can't deal with this now.",
+      "hypothesis": "I can't handle this right now.",
+      "chrf": 54.12
+    },
+    {
+      "id": "tatoeba-0031",
+      "category": "tatoeba",
+      "source": "Tom menunggu Mary pulang ke rumah.",
+      "reference": "Tom waited for Mary to come home.",
+      "hypothesis": "Tom waited for Mary to come home.",
+      "chrf": 100.0
+    },
+    {
+      "id": "tatoeba-0032",
+      "category": "tatoeba",
+      "source": "Ayo coba sekali lagi.",
+      "reference": "Let's try once again.",
+      "hypothesis": "Come on, let's try one more time.",
+      "chrf": 52.4
+    },
+    {
+      "id": "tatoeba-0033",
+      "category": "tatoeba",
+      "source": "Guru menuliskan pendapat pendek pada masing-masing kertas tugas.",
+      "reference": "The teacher put a short comment on each paper.",
+      "hypothesis": "The teacher wrote a short comment on each assignment.",
+      "chrf": 72.85
+    },
+    {
+      "id": "tatoeba-0034",
+      "category": "tatoeba",
+      "source": "Katakan padaku kenapa kau tidak melakukan apa yang aku minta.",
+      "reference": "Tell me why you didn't do what I asked.",
+      "hypothesis": "Tell me why you didn't do what I asked.",
+      "chrf": 100.0
+    },
+    {
+      "id": "tatoeba-0035",
+      "category": "tatoeba",
+      "source": "Berikan padaku panahmu.",
+      "reference": "Give me your arrow.",
+      "hypothesis": "Give me your arrows.",
+      "chrf": 90.91
+    },
+    {
+      "id": "tatoeba-0036",
+      "category": "tatoeba",
+      "source": "Dia bilang dia ingin lari 200 kilometer dalam sehari dan dia melaksanakannya.",
+      "reference": "He said he would run 200 kilometers in a day and he did.",
+      "hypothesis": "He said he wanted to run 200 kilometers in a day and he followed through with it.",
+      "chrf": 75.76
+    },
+    {
+      "id": "tatoeba-0037",
+      "category": "tatoeba",
+      "source": "Aku akan membuat kopi.",
+      "reference": "I will make some coffee.",
+      "hypothesis": "I'm going to make some coffee.",
+      "chrf": 70.18
+    },
+    {
+      "id": "tatoeba-0038",
+      "category": "tatoeba",
+      "source": "Aku baru saja memasang ban baru pada mobilku.",
+      "reference": "I've just had new tires put on my car.",
+      "hypothesis": "I just put new tires on my car.",
+      "chrf": 66.48
+    },
+    {
+      "id": "tatoeba-0039",
+      "category": "tatoeba",
+      "source": "Pada ketinggian itu cuaca dapat berubah secara cepat tanpa peringatan.",
+      "reference": "At that altitude the weather can change rapidly without warning.",
+      "hypothesis": "At that altitude, the weather can change rapidly without warning.",
+      "chrf": 95.76
+    }
+  ]
+}

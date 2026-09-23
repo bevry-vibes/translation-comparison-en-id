@@ -2,7 +2,10 @@
 
 Surveyed September 2026. Scope: **models you can run yourself for free** (no API keys, no
 per-word billing) for the `id ⇄ en` pair, plus the tooling and evaluation harness to pick
-between them. Everything below was checked against the live model hubs
+between them — widened on 2026-09-23 with two hosted options that matter for deployment:
+**Cloudflare Workers AI** (the deployment target) and **Kagi Translate**
+(see [Hosted](#4-hosted-cloudflare-workers-ai-and-kagi-translate-added-2026-09-23)).
+Everything below was checked against the live model hubs
 (Hugging Face, Ollama, GitHub, arXiv) on 2026-09-21, and the headline candidates were
 **actually run and scored on this machine** — see [Measured results](#measured-results-on-this-machine).
 
@@ -17,6 +20,8 @@ between them. Everything below was checked against the live model hubs
 | Research-only / non-commercial is fine, want 200 languages | **NLLB-200** distilled 600M / 1.3B | Strong classic NMT; ⚠️ **CC-BY-NC-4.0** — not for commercial use |
 | Need register/glossary/format control in one pass (subtitles, legal, redaction) | **Hy-MT2-7B** or **TranslateGemma 12B** with instructions | Both follow translation instructions (keep terms untranslated, SRT format, style) |
 | Multiple local languages (Javanese, Sundanese) as well | **SEA-LION** (`Gemma-SEA-LION-v3-9B-IT`) or **Sahabat-AI** (`llama3-8b-cpt-sahabatai-v1`) | SEA-tuned LLMs, Indonesian + regional languages |
+| Deploying on Cloudflare Workers AI | **m2m100-1.2b** — the only id⇄en translation model there | Measured chrF 66.90 id→en (above local 4B tier), but 71.49 en→id (well below); segment first (it drops multi-sentence input) |
+| Hosted quality reference / fastest integration | **Kagi Translate** (via bevry-vibes/kagi-translate-client) | Best measured id→en (chrF **74.82**); ties TranslateGemma 4B on en→id; session-cookie client, no public API used |
 
 Rule of thumb: **specialised MT models (TranslateGemma, Hy-MT2) beat general local LLMs of the same size for Indonesian**, and a 4B specialised model is often better than a 12B general one.
 
@@ -145,7 +150,57 @@ Trained or continual-pretrained on Indonesian (often plus Javanese/Sundanese), s
 | `indonlp/cendol-mt5-*` | mT5 | check repo | Indonesian mT5 family (UI NLP) for Indonesian NLG; not MT-specialised |
 | `LazarusNLP/NusaBERT*` | BERT | check repo | Encoder-only — good for classification, **cannot translate** |
 
-## 4. Runtimes: how to actually run these locally
+## 4. Hosted: Cloudflare Workers AI and Kagi Translate (added 2026-09-23)
+
+These are not free-and-local, so they sit outside the original scope — but they answer the
+deployment question directly: if the pipeline runs on Cloudflare (or you want a hosted
+fallback), what should it call, and how does that quality compare with the local stack?
+
+### Cloudflare Workers AI
+
+- **Catalog (2026-09-23):** exactly two models carry Cloudflare's "Translation" tag:
+  `@cf/meta/m2m100-1.2b` (Meta M2M-100, many-to-many encoder-decoder) and
+  `@cf/ai4bharat/indictrans2-en-indic-1B` (English + the 22 scheduled Indic languages).
+  Prompted general LLMs also run there, but they are outside the sweep defined for this
+  comparison (the user scoped it to Cloudflare's own Translation-tagged models).
+- **Indonesian:** only m2m100 serves it. IndicTrans2 accepts an `ind_Latn` target without
+  error and **silently returns Hindi** — a nasty deployment trap. It is excluded from
+  the scored runs.
+- **m2m100 quirk (observed here):** on a multi-sentence input it translates only one sentence
+  and the rest vanishes — which sentence survives is inconsistent (the smoke kept the second
+  of two; the full run kept the first and dropped "Semoga sehat selalu", scoring the
+  greeting category chrF 31.3). Segment before you send.
+- **API and cost:** `POST /client/v4/accounts/{account}/ai/run/{model}` with
+  `{text, source_lang, target_lang}`; Translation-class limit 720 requests/min. Billed in
+  neurons ($0.011 per 1,000; free tier 10,000/day) — a full 78-segment direction costs a few
+  hundred neurons, so the whole sweep stays free-tier.
+- **AI Gateway vs Workers AI:** Workers AI is the inference platform. AI Gateway is an
+  optional proxy in front of any provider (Workers AI included) that adds analytics,
+  caching, rate limiting and model fallback. Direct calls need no gateway; routing through
+  one later changes only the URL and headers, not the benchmark logic.
+- **SDK note (both languages):** the typed `ai.run()` helpers of the official `cloudflare`
+  SDKs (Python 5.7.0, TypeScript 7.1.0) URL-encode the slash-bearing model id and Cloudflare
+  answers "No route for that URI" (error 7000). Drive the SDKs' generic request path
+  (`client.post(...)`) instead — auth, retries and error mapping stay SDK-managed. See
+  `eval/backends.py` (`CloudflareBackend`) and `eval/deno/run_eval.ts`, which are like-for-like
+  implementations (Python SDK vs npm SDK; the Deno harness shares the test set, the metric
+  formulas and the results schema, and scores through sacrebleu for parity).
+
+### Kagi Translate
+
+- No public API is used here. The benchmark drives
+  [bevry-vibes/kagi-translate-client](https://github.com/bevry-vibes/kagi-translate-client),
+  which speaks translate.kagi.com's own web endpoints with a session cookie (`KAGI_SESSION`,
+  read from the environment only). Kagi's official request-access Translate API exists
+  (about $15 per million characters) if a contracted surface is preferred.
+- The client ships like-for-like Python (uv) and Deno CLIs; the harness drives both
+  (`--kagi-runtime python|deno`), so client/runtime overhead is measured too.
+- Quality signal from the smoke test: "Halo, apa kabar?" → **"Hello, how are you?"** (Kagi)
+  vs "Hi, what is the news?" (m2m100) — Kagi reads far more naturally on this pair.
+- Usage draws on the Kagi account's translate allowance; the account showed unlimited
+  credits on 2026-09-23.
+
+## 5. Runtimes: how to actually run these locally
 
 | runtime | best for | Indonesian notes |
 | --- | --- | --- |
@@ -157,6 +212,8 @@ Trained or continual-pretrained on Indonesian (often plus Javanese/Sundanese), s
 | **Argos Translate / LibreTranslate** | self-hosted API, HTML/file translation, minimal deps | `en↔id` packages exist (argospm 1.9); can pivot via English for other pairs |
 | **LTEngine** (LibreTranslate) | LibreTranslate-compatible API over llama.cpp (Rust) | Runs Gemma3-class GGUFs (1b–27b, `gemma3-4b` ≈ 4 GB RAM); AGPL-3.0; **active development** — single-request mutex, no file/sentence-split support yet |
 | **Firefox built-in translation** | free offline in-browser page translation | ❌ **No Indonesian** in the shipped model set (Marian/Bergamot WASM; repo archived 2023) |
+| **Workers AI REST/SDK** (hosted) | no infra; the deployment target for this project | m2m100-1.2b is the only id↔en translation model; official `cloudflare` SDKs, generic `client.post` (see [Hosted](#4-hosted-cloudflare-workers-ai-and-kagi-translate-added-2026-09-23)) |
+| **kagi-translate-client** (hosted) | hosted quality reference; Python (uv) + Deno CLIs | Session-cookie auth, no API key; `translate.kagi.com` web endpoints (see [Hosted](#4-hosted-cloudflare-workers-ai-and-kagi-translate-added-2026-09-23)) |
 
 Hardware sizing (Q4-class weights, rules of thumb):
 
@@ -168,7 +225,7 @@ Hardware sizing (Q4-class weights, rules of thumb):
 | TranslateGemma 12B (Q4) | ~7–8 GB | 12–16 GB |
 | Hy-MT2-30B-A3B (MoE, Q4) | ~18 GB | 20–24 GB (3B active → fast) |
 
-## 5. Evaluation: what to measure with, and which datasets are usable
+## 6. Evaluation: what to measure with, and which datasets are usable
 
 **Datasets (all free; the first two need no HF token):**
 
@@ -182,7 +239,7 @@ Hardware sizing (Q4-class weights, rules of thumb):
 | TED2020 / TICO-19 | talk transcripts / COVID public-health text | id present, good for domain checks |
 
 
-## 6. Battle-tested gotchas
+## 7. Battle-tested gotchas
 
 - **Gated repos.** `google/translategemma-*` requires accepting Google's terms and an HF token; the Ollama build and community GGUF mirrors avoid that. `openlanguagedata/flores_plus` is auto-gated too (use the `gsarti/flores_101` mirror if you cannot log in).
 - **Ollama + Hugging Face GGUFs.** `ollama pull hf.co/<repo>:<quant>` fails with *"blocked redirect to a different host"* on this setup because HF 302s to its CDN. `curl -L` the `.gguf` yourself, then `ollama create <name> -f Modelfile` with `FROM /path/model.gguf`.
@@ -193,8 +250,10 @@ Hardware sizing (Q4-class weights, rules of thumb):
 - **Long documents drift.** Nothing here maintains terminology or pronouns across segments on its own; chunk by paragraph and re-inject a glossary every chunk.
 - **Benchmarks lie by omission.** A model can win on aggregate chrF and still be unusable for your domain — always inspect per-category scores and the raw hypotheses (`results/*.json`).
 - **Single-reference metrics under-rate valid creativity.** In our smoke run an idiom probe was translated correctly but scored 39 chrF because the reference used different wording.
+- **M2M-100 translates only one sentence of a multi-sentence input** (observed on Workers AI, 2026-09-23): two sentences in, one out, and which one survives is inconsistent. Segment before you send.
+- **IndicTrans2 silently returns Hindi for Indonesian.** Cloudflare tags it "Translation" and accepts `ind_Latn` as the target without an error; the output is Devanagari Hindi. Validate language coverage per model before trusting a hosted catalog tag.
 
-## 7. Decision guide
+## 8. Decision guide
 
 **If you want the best possible free `id ⇄ en` quality:** TranslateGemma 12B (or 27B if the hardware is
 there). It is a purpose-built translator with published, per-language evidence for Indonesian, and
@@ -212,8 +271,10 @@ Setup: AMD Ryzen 5 7640U, 12 threads, 15 GB RAM, **no GPU**, Ollama 0.34.2 (CPU 
 
 | model | prompt | chrF | chrF++ | BLEU | s/segment | weights |
 | --- | --- | ---: | ---: | ---: | ---: | --- |
-| TranslateGemma 4B (`translategemma:4b`, Q4) | TranslateGemma template | **64.87** | **63.10** | **38.79** | 4.36 | 3.3 GB |
-| Hy-MT2-1.8B (Q4_K_M) | Hy-MT2 instruction | 64.35 | 62.21 | 35.10 | **1.00** | 1.2 GB |
+| Kagi Translate (web, session client) | — | **74.82** | **73.20** | **53.12** | 1.54 py / **0.26** deno | hosted |
+| Workers AI m2m100-1.2b | — | 66.90 | 65.12 | 43.06 | 1.38 py / 1.17 deno | hosted |
+| TranslateGemma 4B (`translategemma:4b`, Q4) | TranslateGemma template | 64.87 | 63.10 | 38.79 | 4.36 | 3.3 GB |
+| Hy-MT2-1.8B (Q4_K_M) | Hy-MT2 instruction | 64.35 | 62.21 | 35.10 | 1.00 | 1.2 GB |
 
 Per-category chrF (only `flores-devtest`, 20 pairs, and `tatoeba`, 40 pairs, are statistically meaningful; single-pair categories are directional hints):
 
@@ -236,8 +297,10 @@ Both models are effectively tied on aggregate quality here (−0.5 chrF, within 
 
 | model | chrF | chrF++ | BLEU | s/segment |
 | --- | ---: | ---: | ---: | ---: |
-| TranslateGemma 4B | **80.75** | **79.96** | **62.83** | 2.84 |
+| TranslateGemma 4B | **80.75** | **79.96** | 62.83 | 2.84 |
+| Kagi Translate (web, session client) | 80.53 | 80.09 | **69.17** | 1.91 py / 0.25 deno |
 | Hy-MT2-1.8B | 78.86 | 78.25 | 57.60 | 0.94 |
+| Workers AI m2m100-1.2b | 71.49 | 70.24 | 52.53 | 0.99 py / 0.81 deno |
 
 Sample outputs worth knowing (all three are "valid but different" from the reference, which is why single-reference chrF under-reports quality):
 
@@ -246,6 +309,14 @@ Sample outputs worth knowing (all three are "valid but different" from the refer
 - `always in sync` reference `selalu tersinkronisasi`: returned "selalu sinkron" — shorter, natural.
 
 The full per-segment source/reference/hypothesis dumps are in `results/*.json`, and the generated summary table is in `results/results.md`.
+
+### Hosted vs local (runs of 2026-09-23)
+
+- Hosted rows were measured on 2026-09-23 with the same test set and the same sacrebleu metric backend as the local rows, so the tables are directly comparable.
+- **Kagi Translate wins id→en outright** (chrF 74.82, +10 over the local 4B tier) and ties TranslateGemma 4B on en→id (80.53 vs 80.75 — within 14-segment noise); its BLEU lead on en→id (69.17 vs 62.83) says it matches the reference wording more often. Weakest en→id categories: legal clauses (68.4) and short UI strings (69.9).
+- **Workers AI m2m100 beats the local 4B tier on id→en aggregate** (66.90 vs 64.87) despite dropping multi-sentence content — the aggregate is dominated by single-sentence FLORES/Tatoeba segments. On en→id it is 9 chrF behind (71.49 vs 80.75). For a Cloudflare deployment: usable for pre-segmented id→en volume, not competitive en→id.
+- **Python vs Deno client parity is exact**: identical scores on every run (deterministic services, same metric formulas). Latency differs by client machinery — the Deno Kagi path is ~6× faster per sentence than the Python path (0.26 vs 1.54 s) because the Python runtime pays a `uv` process start per sentence; Deno edges the Workers AI rows by ~0.2 s/sentence.
+- **Timing semantics**: hosted rows time one network round trip per sentence against warm models; local rows time CPU inference after a warm-up. Do not read the s/segment column as a like-for-like speed ranking across the hosted/local boundary.
 
 ### Caveats on these numbers
 
@@ -258,7 +329,7 @@ The full per-segment source/reference/hypothesis dumps are in `results/*.json`, 
 
 **If you need to translate images, audio or subtitles:** TranslateGemma (text in images) + Whisper (audio → English) + Hy-MT2 (SRT/instruction-following cues).
 
-## 8. Suggested next steps
+## 9. Suggested next steps
 
 1. Replace `data/curated.jsonl` references with real references from your own domain (support tickets, invoices, product copy) — 50–100 segments is enough to re-rank the candidates for your use case.
 2. Run head-to-heads with `scripts/run-bench.sh` on that set; keep TranslateGemma 4B/12B and Hy-MT2 1.8B/7B.

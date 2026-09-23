@@ -9,7 +9,11 @@ chrF/chrF++/BLEU are corpus-level, 0-100 (higher is better); `metric backend` sa
 | model | prompt | pairs | chrF | chrF++ | BLEU | s/sentence | metrics | file |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | --- | --- |
 | `translategemma:4b` | translate_gemma | 14 | **80.75** | 79.96 | 62.83 | 2.837 | sacrebleu | `translategemma-4b-enid.json` |
+| `kagi-translate-web` | none | 14 | **80.53** | 80.09 | 69.17 | 0.251 | sacrebleu | `kagi-deno-enid.json` |
+| `kagi-translate-web` | none | 14 | **80.53** | 80.09 | 69.17 | 1.911 | sacrebleu | `kagi-py-enid.json` |
 | `Hy-MT2-1.8B` | hymt2 | 14 | **78.86** | 78.25 | 57.6 | 0.936 | sacrebleu | `hymt2-1.8b-enid.json` |
+| `@cf/meta/m2m100-1.2b` | none | 14 | **71.49** | 70.24 | 52.53 | 0.81 | sacrebleu | `cf-m2m100-1.2b-deno-enid.json` |
+| `@cf/meta/m2m100-1.2b` | none | 14 | **71.49** | 70.24 | 52.53 | 0.988 | sacrebleu | `cf-m2m100-1.2b-enid.json` |
 
 ### Weakest categories for the best en->id run (translategemma-4b-enid)
 
@@ -34,30 +38,34 @@ chrF/chrF++/BLEU are corpus-level, 0-100 (higher is better); `metric backend` sa
 
 | model | prompt | pairs | chrF | chrF++ | BLEU | s/sentence | metrics | file |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | --- | --- |
+| `kagi-translate-web` | none | 78 | **74.82** | 73.2 | 53.12 | 0.255 | sacrebleu | `kagi-deno-iden.json` |
+| `kagi-translate-web` | none | 78 | **74.82** | 73.2 | 53.12 | 1.538 | sacrebleu | `kagi-py-iden.json` |
+| `@cf/meta/m2m100-1.2b` | none | 78 | **66.9** | 65.12 | 43.06 | 1.169 | sacrebleu | `cf-m2m100-1.2b-deno-iden.json` |
+| `@cf/meta/m2m100-1.2b` | none | 78 | **66.9** | 65.12 | 43.06 | 1.382 | sacrebleu | `cf-m2m100-1.2b-iden.json` |
 | `translategemma:4b` | translate_gemma | 78 | **64.87** | 63.1 | 38.79 | 4.355 | sacrebleu | `translategemma-4b-iden.json` |
 | `Hy-MT2-1.8B` | hymt2 | 78 | **64.35** | 62.21 | 35.1 | 0.999 | sacrebleu | `hymt2-1.8b-iden.json` |
 | `qwen3:1.7b` | generic | 30 | **59.75** | 57.82 | 33.98 | 3.606 | sacrebleu | `generic-qwen3-1.7b-iden.json` |
 
-### Weakest categories for the best id->en run (translategemma-4b-iden)
+### Weakest categories for the best id->en run (kagi-deno-iden)
 
 | category | avg chrF |
 | --- | ---: |
-| colloquial-register | 40.52 |
-| idiom | 43.68 |
-| long-sentence | 48.3 |
-| time-expression | 57.68 |
-| legal-admin | 66.83 |
-| tatoeba | 68.51 |
-| passive-di | 69.11 |
-| flores-devtest | 69.72 |
-| greeting-register | 69.87 |
-| formal-letter | 70.15 |
-| acronym-entity | 77.61 |
-| dates | 78.56 |
-| medical-term | 78.98 |
-| reduplication | 80.65 |
-| technical-ui | 83.21 |
-| news-quote | 85.25 |
-| do-not-translate | 87.29 |
+| idiom | 46.0 |
+| time-expression | 55.31 |
+| formal-letter | 63.74 |
+| flores-devtest | 75.81 |
+| tatoeba | 76.72 |
+| greeting-register | 77.28 |
+| long-sentence | 77.31 |
+| medical-term | 77.59 |
+| news-quote | 79.06 |
+| dates | 79.44 |
+| colloquial-register | 85.19 |
+| reduplication | 88.55 |
+| passive-di | 89.99 |
+| technical-ui | 94.74 |
+| acronym-entity | 100.0 |
+| do-not-translate | 100.0 |
+| legal-admin | 100.0 |
 | numbers-currency | 100.0 |
 

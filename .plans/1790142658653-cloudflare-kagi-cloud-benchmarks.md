@@ -33,5 +33,5 @@ The harness in `eval/` benchmarks local id↔en models through duck-typed backen
 
 ## deviation log
 
-- The agent-detect reciprocity gate returned `not reciprocal` (exit 10) for the `zcode` harness and provider rules. The maintainer classifies this verdict as an open bug in the rule data, with a discussion open upstream. The maintainer directed the session to continue. This entry records that direction; the gate output is not altered or bypassed.
+- The agent-detect reciprocity gate returned `not reciprocal` (exit 10) for the `zcode` harness and provider rules. The maintainer classifies this verdict as an open bug in the rule data; the discussion is tracked upstream as https://github.com/bevry-vibes/agent-detect/issues/3, which requests a per-combo exceptions mechanism because the verdict is effectively permanent for this combo. The maintainer directed the session to continue. This entry records that direction; the gate output is not altered or bypassed.
 - The upstream `python.md` skill already existed, so step 2 shrank to the AGENTS.md reference and the local tweaks file.
