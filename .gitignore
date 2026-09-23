@@ -59,6 +59,7 @@ docs/
 # this project: Python runtime files
 __pycache__/
 *.pyc
+.venv/
 
 # this project: downloaded corpus archives; rebuild with eval/build_testset.py
 data/*.zip

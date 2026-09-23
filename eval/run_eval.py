@@ -14,6 +14,18 @@ Examples:
   python3 eval/run_eval.py --backend transformers --model facebook/nllb-200-distilled-600M \
       --family nllb --prompt-style none --src id --tgt en
 
+  # Cloudflare Workers AI (official SDK; needs CLOUDFLARE_API_TOKEN +
+  # CLOUDFLARE_ACCOUNT_ID in the environment, i.e. `set -a; . ./.env; set +a`)
+  python3 eval/run_eval.py --backend cloudflare --model @cf/meta/m2m100-1.2b \
+      --prompt-style none --src id --tgt en --name cf-m2m100-1.2b
+
+  # Kagi Translate via bevry-vibes/kagi-translate-client (needs KAGI_SESSION and
+  # KAGI_CLIENT_REPO in the environment; --kagi-runtime python|deno picks the CLI)
+  python3 eval/run_eval.py --backend kagi --kagi-runtime python \
+      --prompt-style none --src id --tgt en --name kagi-py
+
+Hosted backends (cloudflare, kagi) load no local model, so the memguard RAM fit
+check is skipped for them; the one-benchmark-at-a-time run lock still applies.
 Raw results land in results/*.json; `python3 eval/summarize.py` renders results/results.md.
 """
 
@@ -21,6 +33,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 from datetime import datetime, timezone
@@ -31,7 +44,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import memguard  # noqa: E402
 import metrics  # noqa: E402
 from backends import (  # noqa: E402
-    ArgosBackend, OllamaBackend, OpenAICompatBackend, TransformersBackend,
+    ArgosBackend, CloudflareBackend, KagiBackend, OllamaBackend, OpenAICompatBackend,
+    TransformersBackend,
 )
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -58,6 +72,18 @@ def make_backend(args):
     if args.backend == "openai":
         return OpenAICompatBackend(args.model, base_url=args.base_url, api_key=args.api_key,
                                    prompt_style=args.prompt_style, temperature=args.temperature)
+    if args.backend == "cloudflare":
+        token = args.api_key if args.api_key != "not-needed" else os.environ.get("CLOUDFLARE_API_TOKEN", "")
+        account = args.account_id or os.environ.get("CLOUDFLARE_ACCOUNT_ID", "")
+        if not token or not account:
+            raise SystemExit("cloudflare backend needs CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID "
+                             "in the environment (`set -a; . ./.env; set +a`) or --api-key/--account-id")
+        return CloudflareBackend(args.model, account_id=account, api_token=token)
+    if args.backend == "kagi":
+        if not os.environ.get("KAGI_SESSION"):
+            raise SystemExit("kagi backend needs KAGI_SESSION in the environment "
+                             "(`set -a; . ./.env; set +a`)")
+        return KagiBackend(runtime=args.kagi_runtime, kagi_client_repo=args.kagi_client_repo)
     if args.backend == "transformers":
         return TransformersBackend(args.model, family=args.family)
     if args.backend == "argos":
@@ -76,7 +102,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--backend", required=True,
-                        choices=["ollama", "openai", "transformers", "argos"])
+                        choices=["ollama", "openai", "transformers", "argos", "cloudflare", "kagi"])
     parser.add_argument("--model", default="")
     parser.add_argument("--family", default="seq2seq",
                         help="transformers family: nllb | m2m100 | madlad | opus | seq2seq")
@@ -90,6 +116,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--host", default="http://127.0.0.1:11434")
     parser.add_argument("--base-url", default="http://127.0.0.1:1234/v1")
     parser.add_argument("--api-key", default="not-needed")
+    parser.add_argument("--account-id", default=None,
+                        help="Cloudflare account id (default $CLOUDFLARE_ACCOUNT_ID)")
+    parser.add_argument("--kagi-runtime", default="python", choices=["python", "deno"],
+                        help="which kagi-translate-client CLI to drive (default python)")
+    parser.add_argument("--kagi-client-repo", default=None,
+                        help="path to bevry-vibes/kagi-translate-client (default $KAGI_CLIENT_REPO)")
     parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--num-ctx", type=int, default=2048)
     parser.add_argument("--think", dest="think", action="store_true", default=None,
@@ -127,10 +159,14 @@ def run(args: argparse.Namespace) -> None:
     resident = memguard.resident_ollama_models(args.host) if args.backend == "ollama" else []
     if resident and args.backend == "ollama":
         print(f"[mem ] Ollama already holds in RAM: {', '.join(resident)}")
-    required = memguard.estimate_gb(args.model or "unknown", args.family,
-                                    num_ctx=args.num_ctx, explicit=args.est_gb)
-    memguard.require_memory(required, min_free_gb=args.min_free_gb, force=args.force,
-                            label=hf)
+    if getattr(backend, "loads_local_model", True):
+        required = memguard.estimate_gb(args.model or "unknown", args.family,
+                                        num_ctx=args.num_ctx, explicit=args.est_gb)
+        memguard.require_memory(required, min_free_gb=args.min_free_gb, force=args.force,
+                                label=hf)
+    else:
+        print("[mem ] hosted backend: no local model to load, skipping the RAM fit check "
+              "(the run lock is still held)")
 
     # load the model / warm the KV cache before the clock starts (skippable with --no-warmup)
     if hasattr(backend, "warmup") and not args.no_warmup:

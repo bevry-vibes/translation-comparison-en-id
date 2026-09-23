@@ -1,0 +1,4 @@
+# Hosted-provider benchmark support (install with uv, never bare pip — see README).
+cloudflare>=4.0
+# Metric parity with the committed local-model results (metrics.py prefers it when importable).
+sacrebleu>=2.4

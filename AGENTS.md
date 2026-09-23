@@ -7,6 +7,7 @@ When a referenced skill applies with your project's tweaks, the local `<name>.md
 - https://github.com/bevry-vibes/skills/blob/main/policy.md — **applies**. Bevry's AI policy. Gate every session: detect reciprocity compliance with [agent-detect](https://github.com/bevry-vibes/agent-detect) before any work in this repository.
 - https://github.com/bevry-vibes/skills/blob/main/commits.md — **applies**. Bevry's commit hygiene. Use Conventional Commits, generate the co-author trailer with agent-detect, and sign through the 1Password SSH agent.
 - https://github.com/bevry-vibes/skills/blob/main/plans.md — **applies**. Bevry's plan conventions. Follow them when you plan work in this repository.
+- [python.md](./python.md) — **applies**, with this project's tweaks. Python work runs through uv; this repo keeps its bare `requirements.txt` bootstrap, and the official `cloudflare` SDK is the sanctioned stdlib exception for the hosted Workers AI backend.
 - https://github.com/bevry-vibes/skills/blob/main/build.md — **does not apply**: this project has no packaged build and no menu-bar or tray app; the harness runs as plain Python scripts.
 - https://github.com/bevry-vibes/skills/blob/main/powershell.md — **does not apply**: no PowerShell work here; the scripts are POSIX shell and Python.
 - https://github.com/bevry-vibes/skills/blob/main/zig.md — **does not apply**: no Zig code in this project.

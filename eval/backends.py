@@ -9,6 +9,8 @@ installing torch.
 from __future__ import annotations
 
 import json
+import os
+import subprocess
 import time
 import urllib.error
 import urllib.request
@@ -253,4 +255,119 @@ class ArgosBackend:
         started = time.perf_counter()
         out = [translation.translate(t) for t in texts]
         return Result(out, time.perf_counter() - started, f"argos-{src}-{tgt}", "argos")
+
+
+class CloudflareBackend:
+    """Cloudflare Workers AI hosted translation models
+    (https://developers.cloudflare.com/workers-ai/), via the official `cloudflare`
+    SDK (requirements.txt).
+
+    The typed `ai.run()` helper URL-encodes the slash-bearing model id
+    ("@cf/meta/m2m100-1.2b") and Cloudflare answers "No route for that URI"
+    (observed on python SDK 5.7.0 and TS SDK 7.1.0), so calls go through the
+    SDK's generic request path; auth, retries and error mapping stay SDK-managed.
+    """
+
+    loads_local_model = False  # hosted: run_eval skips the RAM fit check, the run lock still applies
+
+    def __init__(self, model: str, account_id: str, api_token: str) -> None:
+        self.model = model
+        self.account_id = account_id
+        self.api_token = api_token
+        self._client = None
+
+    @property
+    def name(self) -> str:
+        return f"cloudflare:{self.model}"
+
+    def _load(self):
+        if self._client is None:
+            from cloudflare import Cloudflare  # lazy: the local backends stay install-free
+
+            self._client = Cloudflare(api_token=self.api_token)
+        return self._client
+
+    def warmup(self, src: str, tgt: str) -> None:
+        try:
+            self.translate(["Halo."], src, tgt)
+        except Exception as exc:  # pragma: no cover - warmup is best effort
+            print(f"[warn] warmup failed for {self.name}: {exc}")
+
+    def translate(self, texts: list[str], src: str, tgt: str) -> Result:
+        client = self._load()
+        path = f"/accounts/{self.account_id}/ai/run/{self.model}"
+        out: list[str] = []
+        started = time.perf_counter()
+        for text in texts:
+            body = client.post(path, body={"text": text, "source_lang": src, "target_lang": tgt},
+                               cast_to=object)
+            if not isinstance(body, dict) or not body.get("success"):
+                raise RuntimeError(f"cloudflare: bad envelope from {self.model}: {str(body)[:200]}")
+            result = body.get("result") or {}
+            if "translated_text" in result:  # m2m100-style: a single string
+                out.append(str(result["translated_text"]).strip())
+            elif "translations" in result:  # indictrans2-style: a list of segments
+                parts = result["translations"]
+                joined = " ".join(
+                    p.get("translated_text", "") if isinstance(p, dict) else str(p) for p in parts
+                )
+                out.append(joined.strip())
+            else:
+                raise RuntimeError(
+                    f"cloudflare: unexpected result shape from {self.model}: {str(result)[:200]}"
+                )
+        return Result(out, time.perf_counter() - started, self.model, "cloudflare")
+
+
+class KagiBackend:
+    """Kagi Translate (translate.kagi.com) through bevry-vibes/kagi-translate-client.
+
+    The client repo (kagi_client_repo, default $KAGI_CLIENT_REPO) ships two
+    like-for-like CLIs: runtime="python" runs kagi_translate.py under uv,
+    runtime="deno" runs kagi_translate.ts under deno. KAGI_SESSION must be in
+    the environment; the client reads it from the env only, no API key flow exists.
+    """
+
+    loads_local_model = False  # hosted: run_eval skips the RAM fit check, the run lock still applies
+
+    def __init__(self, runtime: str = "python", kagi_client_repo: str | None = None) -> None:
+        self.runtime = runtime
+        self.kagi_client_repo = kagi_client_repo or os.environ.get("KAGI_CLIENT_REPO")
+        if not self.kagi_client_repo:
+            raise SystemExit("kagi backend needs --kagi-client-repo or $KAGI_CLIENT_REPO")
+        if not os.path.isdir(self.kagi_client_repo):
+            raise SystemExit(f"kagi client repo not found: {self.kagi_client_repo}")
+        if runtime == "python":
+            self._argv = ["uv", "run", "kagi_translate.py"]
+        elif runtime == "deno":
+            self._argv = ["deno", "run", "--allow-env", "--allow-net", "kagi_translate.ts"]
+        else:
+            raise SystemExit(f"unknown kagi runtime: {runtime} (use python | deno)")
+
+    @property
+    def name(self) -> str:
+        return f"kagi:{self.runtime}"
+
+    def warmup(self, src: str, tgt: str) -> None:
+        try:
+            self.translate(["Halo."], src, tgt)
+        except Exception as exc:  # pragma: no cover - warmup is best effort
+            print(f"[warn] warmup failed for {self.name}: {exc}")
+
+    def translate(self, texts: list[str], src: str, tgt: str) -> Result:
+        out: list[str] = []
+        started = time.perf_counter()
+        for text in texts:
+            proc = subprocess.run(
+                [*self._argv, "translate", text, "--from", src, "--to", tgt,
+                 "--format", "json", "--no-stream"],
+                cwd=self.kagi_client_repo, capture_output=True, text=True, timeout=300,
+            )
+            if proc.returncode != 0:
+                raise RuntimeError(
+                    f"kagi {self.runtime} rc={proc.returncode}: {proc.stderr.strip()[:200]}"
+                )
+            body = json.loads(proc.stdout)
+            out.append(str(body.get("translation", "")).strip())
+        return Result(out, time.perf_counter() - started, "kagi-translate-web", "kagi")
 
