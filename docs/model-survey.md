@@ -21,6 +21,7 @@ Everything below was checked against the live model hubs
 | Need register/glossary/format control in one pass (subtitles, legal, redaction) | **Hy-MT2-7B** or **TranslateGemma 12B** with instructions | Both follow translation instructions (keep terms untranslated, SRT format, style) |
 | Multiple local languages (Javanese, Sundanese) as well | **SEA-LION** (`Gemma-SEA-LION-v3-9B-IT`) or **Sahabat-AI** (`llama3-8b-cpt-sahabatai-v1`) | SEA-tuned LLMs, Indonesian + regional languages |
 | Deploying on Cloudflare Workers AI | **m2m100-1.2b** — the only id⇄en translation model there | Measured chrF 66.90 id→en (above local 4B tier), but 71.49 en→id (well below); segment first (it drops multi-sentence input) |
+| Hosted, best quality for en→id | **qwen-mt-flash / -turbo** (QwenCloud MaaS) | Measured chrF **87.26** / 86.00 — 6+ points above everything else; id→en 69.9–71.8; fastest hosted latency |
 | Hosted quality reference / fastest integration | **Kagi Translate** (via bevry-vibes/kagi-translate-client) | Best measured id→en (chrF **74.82**); ties TranslateGemma 4B on en→id; session-cookie client, no public API used |
 
 Rule of thumb: **specialised MT models (TranslateGemma, Hy-MT2) beat general local LLMs of the same size for Indonesian**, and a 4B specialised model is often better than a 12B general one.
@@ -136,7 +137,7 @@ Practical notes:
 - Always force **temperature 0** and cap output length; general LLMs add preambles/notes unless forbidden.
 - Prompt with the style you want ("formal Indonesian suitable for a bank statement" works).
 - A general 7B model usually loses to **TranslateGemma 4B** on this pair — bigger is not automatically better.
-- **Qwen3.8-LiveTranslate-Flash-Realtime** (real-time audio/video interpretation, understands 60 / speaks 29 languages) is **hosted-only**: sold on QwenCloud (Alibaba's Singapore cloud) as a paid realtime API (audio in $7.5, audio out $30 per 1M tokens), with **no weights on Hugging Face or Ollama as of 2026-09-22** — it cannot join a local stack, though its offline sibling may ship weights later. Watch the Qwen org, not resellers.
+- **Qwen3.8-LiveTranslate-Flash-Realtime** (real-time audio/video interpretation, understands 60 / speaks 29 languages) is **hosted-only**, and the live probe (2026-09-24) confirms it **cannot join a text benchmark at all**: on QwenCloud MaaS its session negotiates `input_modalities: ["audio"]` — audio/video in, translated audio + text out, no text-input event. The offline sibling the model page references (`qwen3.8-livetranslate-flash`) answers **"Model not exist"** on the API, and the previous-generation `qwen3-livetranslate-flash` is listed but rejects `translation_options`, so it is not callable for text on this gateway either. **No weights on Hugging Face or Ollama.** The usable QwenCloud text-translation path is the dedicated **`qwen-mt` family** (below) — see [Hosted](#4-hosted-cloudflare-workers-ai-and-kagi-translate-added-2026-09-23). Watch the Qwen org for the offline LiveTranslate weights, not resellers.
 
 ## 3. Indonesian / SEA-specialised models
 
@@ -199,6 +200,28 @@ fallback), what should it call, and how does that quality compare with the local
   vs "Hi, what is the news?" (m2m100) — Kagi reads far more naturally on this pair.
 - Usage draws on the Kagi account's translate allowance; the account showed unlimited
   credits on 2026-09-23.
+
+### QwenCloud MaaS (Alibaba) — verified live 2026-09-24
+
+The deployment question expanded to QwenCloud (`maas.qwencloudapi.com`, OpenAI-compatible
+`/compatible-mode/v1`), so its translation surface was probed and benchmarked:
+
+- **`qwen3.8-livetranslate-flash-realtime` is real but audio-only.** The WebSocket realtime
+  endpoint connects and negotiates a session (`translation.language` defaults to `en`), but
+  the session declares `input_modalities: ["audio"]` — there is no text-input event. The
+  protocol is OpenAI-Realtime-shaped but its own dialect: `session.update` carries
+  `translation: {source_language, language}` (Indonesian `id` is supported as a source),
+  and translated text arrives as `response.text.text` / `response.audio_transcript.text`
+  deltas; `response.create` is not a valid event. Calling the model through chat completions
+  returns a bare `{"status_message": "Success"}` with no content — a trap.
+- **The offline sibling does not exist on the API.** `qwen3.8-livetranslate-flash` (referenced
+  by the model page) answers "Model not exist"; the catalog's `qwen3-livetranslate-flash`
+  rejects `translation_options` and is not callable for text on this gateway.
+- **The usable text-translation family is `qwen-mt-*`** — `qwen-mt-plus`, `qwen-mt-turbo`,
+  `qwen-mt-flash`, `qwen-mt-lite`: plain chat completions with
+  `translation_options: {source_lang: "auto", target_lang: "English"}` and the raw source
+  text as the message — no prompt, no thinking, and (unlike Workers AI's m2m100)
+  multi-sentence input comes back whole. All four tiers are benchmarked below.
 
 ## 5. Runtimes: how to actually run these locally
 
@@ -272,6 +295,10 @@ Setup: AMD Ryzen 5 7640U, 12 threads, 15 GB RAM, **no GPU**, Ollama 0.34.2 (CPU 
 | model | prompt | chrF | chrF++ | BLEU | s/segment | weights |
 | --- | --- | ---: | ---: | ---: | ---: | --- |
 | Kagi Translate (web, session client) | — | **74.82** | **73.20** | **53.12** | 1.54 py / **0.26** deno | hosted |
+| Qwen-MT turbo (`qwen-mt-turbo`) | — | 71.77 | 70.02 | 46.62 | 0.51 | hosted |
+| Qwen-MT lite (`qwen-mt-lite`) | — | 71.26 | 69.58 | 46.47 | 1.08 | hosted |
+| Qwen-MT plus (`qwen-mt-plus`) | — | 70.68 | 68.67 | 43.61 | 0.74 | hosted |
+| Qwen-MT flash (`qwen-mt-flash`) | — | 69.90 | 68.02 | 43.57 | **0.34** | hosted |
 | Workers AI m2m100-1.2b | — | 66.90 | 65.12 | 43.06 | 1.38 py / 1.17 deno | hosted |
 | TranslateGemma 4B (`translategemma:4b`, Q4) | TranslateGemma template | 64.87 | 63.10 | 38.79 | 4.36 | 3.3 GB |
 | Hy-MT2-1.8B (Q4_K_M) | Hy-MT2 instruction | 64.35 | 62.21 | 35.10 | 1.00 | 1.2 GB |
@@ -297,8 +324,12 @@ Both models are effectively tied on aggregate quality here (−0.5 chrF, within 
 
 | model | chrF | chrF++ | BLEU | s/segment |
 | --- | ---: | ---: | ---: | ---: |
-| TranslateGemma 4B | **80.75** | **79.96** | 62.83 | 2.84 |
-| Kagi Translate (web, session client) | 80.53 | 80.09 | **69.17** | 1.91 py / 0.25 deno |
+| Qwen-MT flash (`qwen-mt-flash`) | **87.26** | **86.71** | 72.48 | **0.33** |
+| Qwen-MT turbo (`qwen-mt-turbo`) | 86.00 | 85.65 | **77.38** | 0.31 |
+| Qwen-MT plus (`qwen-mt-plus`) | 83.99 | 83.61 | 73.05 | 0.30 |
+| Qwen-MT lite (`qwen-mt-lite`) | 82.01 | 81.51 | 69.30 | 0.28 |
+| TranslateGemma 4B | 80.75 | 79.96 | 62.83 | 2.84 |
+| Kagi Translate (web, session client) | 80.53 | 80.09 | 69.17 | 1.91 py / 0.25 deno |
 | Hy-MT2-1.8B | 78.86 | 78.25 | 57.60 | 0.94 |
 | Workers AI m2m100-1.2b | 71.49 | 70.24 | 52.53 | 0.99 py / 0.81 deno |
 
@@ -314,6 +345,7 @@ The full per-segment source/reference/hypothesis dumps are in `results/*.json`, 
 
 - Hosted rows were measured on 2026-09-23 with the same test set and the same sacrebleu metric backend as the local rows, so the tables are directly comparable.
 - **Kagi Translate wins id→en outright** (chrF 74.82, +10 over the local 4B tier) and ties TranslateGemma 4B on en→id (80.53 vs 80.75 — within 14-segment noise); its BLEU lead on en→id (69.17 vs 62.83) says it matches the reference wording more often. Weakest en→id categories: legal clauses (68.4) and short UI strings (69.9).
+- **The Qwen-MT family takes en→id by a wide margin**: qwen-mt-flash scores chrF 87.26 (+6.5 over the previous best) at 0.33 s/sentence — the best quality AND latency of any hosted row — with qwen-mt-turbo close behind (86.00, and the best BLEU at 77.38). On id→en the four tiers cluster at 69.9–71.8, above Workers AI m2m100 and the local tier, though still under Kagi. Translations come back fluent and complete: the multi-sentence greeting that m2m100 mangled ("Semoga sehat selalu" dropped, chrF 31.3) translates in full (greeting-register chrF 93.2). Weak spots mirror the other systems: idioms (24–33) and short Tatoeba everyday lines.
 - **Workers AI m2m100 beats the local 4B tier on id→en aggregate** (66.90 vs 64.87) despite dropping multi-sentence content — the aggregate is dominated by single-sentence FLORES/Tatoeba segments. On en→id it is 9 chrF behind (71.49 vs 80.75). For a Cloudflare deployment: usable for pre-segmented id→en volume, not competitive en→id.
 - **Python vs Deno client parity is exact**: identical scores on every run (deterministic services, same metric formulas). Latency differs by client machinery — the Deno Kagi path is ~6× faster per sentence than the Python path (0.26 vs 1.54 s) because the Python runtime pays a `uv` process start per sentence; Deno edges the Workers AI rows by ~0.2 s/sentence.
 - **Timing semantics**: hosted rows time one network round trip per sentence against warm models; local rows time CPU inference after a warm-up. Do not read the s/segment column as a like-for-like speed ranking across the hosted/local boundary.

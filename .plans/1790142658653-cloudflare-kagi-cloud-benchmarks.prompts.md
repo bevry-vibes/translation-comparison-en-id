@@ -44,3 +44,17 @@ move the cf account id to .env and redact it from anything being comitted to git
 ## prompt 6
 
 Ignore the reciprocity issue for now, it is an open bug and discussion I am having with Zcode.
+
+## prompt 7 (2026-09-24)
+
+I've added a QWENCLOUD_API_KEY to .env use it to also test its models
+
+Qwen3.8-LiveTranslate-Flash (referenced by realtime, but no model seems to exist)
+
+Qwen3.8-LiveTranslate-Flash-Realtime - https://www.qwencloud.com/models/qwen3.8-livetranslate-flash-realtime
+
+(followed by a Python `websocket-client` sample that connects to `wss://maas.qwencloudapi.com/api-ws/v1/realtime?model=qwen3.8-livetranslate-flash-realtime` with `Authorization: Bearer $DASHSCOPE_API_KEY` and logs JSON events)
+
+## prompt 8 (2026-09-24)
+
+did you forget to push?

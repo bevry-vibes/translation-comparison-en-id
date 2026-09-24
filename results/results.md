@@ -8,6 +8,10 @@ chrF/chrF++/BLEU are corpus-level, 0-100 (higher is better); `metric backend` sa
 
 | model | prompt | pairs | chrF | chrF++ | BLEU | s/sentence | metrics | file |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | --- | --- |
+| `qwen-mt-flash` | none | 14 | **87.26** | 86.71 | 72.48 | 0.327 | sacrebleu | `qwen-mt-flash-enid.json` |
+| `qwen-mt-turbo` | none | 14 | **86.0** | 85.65 | 77.38 | 0.31 | sacrebleu | `qwen-mt-turbo-enid.json` |
+| `qwen-mt-plus` | none | 14 | **83.99** | 83.61 | 73.05 | 0.302 | sacrebleu | `qwen-mt-plus-enid.json` |
+| `qwen-mt-lite` | none | 14 | **82.01** | 81.51 | 69.3 | 0.277 | sacrebleu | `qwen-mt-lite-enid.json` |
 | `translategemma:4b` | translate_gemma | 14 | **80.75** | 79.96 | 62.83 | 2.837 | sacrebleu | `translategemma-4b-enid.json` |
 | `kagi-translate-web` | none | 14 | **80.53** | 80.09 | 69.17 | 0.251 | sacrebleu | `kagi-deno-enid.json` |
 | `kagi-translate-web` | none | 14 | **80.53** | 80.09 | 69.17 | 1.911 | sacrebleu | `kagi-py-enid.json` |
@@ -15,24 +19,24 @@ chrF/chrF++/BLEU are corpus-level, 0-100 (higher is better); `metric backend` sa
 | `@cf/meta/m2m100-1.2b` | none | 14 | **71.49** | 70.24 | 52.53 | 0.81 | sacrebleu | `cf-m2m100-1.2b-deno-enid.json` |
 | `@cf/meta/m2m100-1.2b` | none | 14 | **71.49** | 70.24 | 52.53 | 0.988 | sacrebleu | `cf-m2m100-1.2b-enid.json` |
 
-### Weakest categories for the best en->id run (translategemma-4b-enid)
+### Weakest categories for the best en->id run (qwen-mt-flash-enid)
 
 | category | avg chrF |
 | --- | ---: |
-| idiom | 63.05 |
-| legal | 71.35 |
 | marketing | 73.26 |
 | software-term | 73.67 |
-| passive | 76.42 |
-| medical-instruction | 83.51 |
-| acronym | 84.21 |
-| register-formal | 84.23 |
-| simple | 84.82 |
-| relative-clause | 85.77 |
-| long-conditional | 90.08 |
+| second-person | 78.71 |
+| long-conditional | 85.53 |
+| register-formal | 87.81 |
+| passive | 89.64 |
+| idiom | 89.65 |
+| legal | 92.23 |
+| relative-clause | 92.24 |
 | ui-short | 92.68 |
 | numbers-currency | 92.75 |
-| second-person | 100.0 |
+| acronym | 100.0 |
+| medical-instruction | 100.0 |
+| simple | 100.0 |
 
 ## id->en
 
@@ -40,6 +44,10 @@ chrF/chrF++/BLEU are corpus-level, 0-100 (higher is better); `metric backend` sa
 | --- | --- | ---: | ---: | ---: | ---: | ---: | --- | --- |
 | `kagi-translate-web` | none | 78 | **74.82** | 73.2 | 53.12 | 0.255 | sacrebleu | `kagi-deno-iden.json` |
 | `kagi-translate-web` | none | 78 | **74.82** | 73.2 | 53.12 | 1.538 | sacrebleu | `kagi-py-iden.json` |
+| `qwen-mt-turbo` | none | 78 | **71.77** | 70.02 | 46.62 | 0.508 | sacrebleu | `qwen-mt-turbo-iden.json` |
+| `qwen-mt-lite` | none | 78 | **71.26** | 69.58 | 46.47 | 1.08 | sacrebleu | `qwen-mt-lite-iden.json` |
+| `qwen-mt-plus` | none | 78 | **70.68** | 68.67 | 43.61 | 0.739 | sacrebleu | `qwen-mt-plus-iden.json` |
+| `qwen-mt-flash` | none | 78 | **69.9** | 68.02 | 43.57 | 0.339 | sacrebleu | `qwen-mt-flash-iden.json` |
 | `@cf/meta/m2m100-1.2b` | none | 78 | **66.9** | 65.12 | 43.06 | 1.169 | sacrebleu | `cf-m2m100-1.2b-deno-iden.json` |
 | `@cf/meta/m2m100-1.2b` | none | 78 | **66.9** | 65.12 | 43.06 | 1.382 | sacrebleu | `cf-m2m100-1.2b-iden.json` |
 | `translategemma:4b` | translate_gemma | 78 | **64.87** | 63.1 | 38.79 | 4.355 | sacrebleu | `translategemma-4b-iden.json` |

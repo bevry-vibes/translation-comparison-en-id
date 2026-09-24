@@ -21,8 +21,8 @@ python3 eval/build_testset.py --flores 20 --tatoeba 40
 python3 eval/run_eval.py --backend ollama --model translategemma:4b \
   --prompt-style translate_gemma --src id --tgt en --name translategemma-4b
 
-# 4. or run the hosted sweeps (Cloudflare Workers AI + Kagi Translate; needs .env)
-bash scripts/run-cloud.sh
+# 4. or run the hosted sweeps (Cloudflare Workers AI + Kagi Translate + Qwen-MT; needs .env)
+bash scripts/run-cloud.sh all
 
 # 5. or run everything that is installed and render the table
 bash scripts/run-bench.sh
@@ -37,7 +37,7 @@ python3 eval/summarize.py
 | --- | --- |
 | `eval/build_testset.py` | builds `data/testset.jsonl` from FLORES-101 devtest (ungated mirror), Tatoeba (OPUS) and `data/curated.jsonl` |
 | `eval/run_eval.py` | runs a backend over one direction, scores it, dumps every source/reference/hypothesis to `results/*.json` |
-| `eval/backends.py` | Ollama, OpenAI-compatible (LM Studio / llama-server / vLLM), Transformers (NLLB, M2M-100, MADLAD, OPUS-MT), Argos, Cloudflare Workers AI (official SDK) and Kagi Translate adapters, plus the per-family prompt templates |
+| `eval/backends.py` | Ollama, OpenAI-compatible (LM Studio / llama-server / vLLM), Transformers (NLLB, M2M-100, MADLAD, OPUS-MT), Argos, Cloudflare Workers AI (official SDK), Kagi Translate, and Qwen-MT (QwenCloud MaaS) adapters, plus the per-family prompt templates |
 | `eval/metrics.py` | corpus chrF / chrF++ / BLEU + per-sentence chrF; uses `sacrebleu` when installed, otherwise a stdlib fallback |
 | `eval/deno/run_eval.ts` | like-for-like Deno harness for the Workers AI sweep: same test set, same metric formulas, same results JSON and run lock, so `summarize.py` renders both clients into one table |
 | `eval/memguard.py` | RAM-fit check, single-run lock and Ollama model eviction — stops a benchmark from exhausting the machine's memory |
@@ -64,9 +64,9 @@ Every model-loading run is wrapped by `eval/memguard.py`:
 
 Server-side, start Ollama with `OLLAMA_MAX_LOADED_MODELS=1 OLLAMA_NUM_PARALLEL=1` so it can never hold two models at once (these are read at server startup only). The lock does not cover `pip install torch` (≈2 GB). Do not install packages while a benchmark runs.
 
-## Hosted providers (Cloudflare Workers AI + Kagi Translate)
+## Hosted providers (Cloudflare Workers AI + Kagi Translate + Qwen-MT)
 
-The hosted backends load no model on this machine, so `memguard` skips the RAM fit check for them; the single-run lock still applies. `bash scripts/run-cloud.sh [cloudflare|kagi|both] [id-en|en-id|both]` runs each provider's sweep in both directions and regenerates the table.
+The hosted backends load no model on this machine, so `memguard` skips the RAM fit check for them; the single-run lock still applies. `bash scripts/run-cloud.sh [cloudflare|kagi|qwen|both|all] [id-en|en-id|both]` runs each provider's sweep in both directions and regenerates the table.
 
 Setup:
 
@@ -76,6 +76,7 @@ CLOUDFLARE_API_TOKEN=...        # token with Workers AI permission
 CLOUDFLARE_ACCOUNT_ID=...       # your Cloudflare account id
 KAGI_SESSION=...                # the kagi_session cookie of translate.kagi.com
 KAGI_CLIENT_REPO=/path/to/kagi-translate-client   # clone of bevry-vibes/kagi-translate-client
+QWENCLOUD_API_KEY=...           # QwenCloud MaaS API key (maas.qwencloudapi.com)
 
 # one-time bootstrap (uv; never bare pip on the system)
 uv venv .venv
@@ -96,12 +97,17 @@ deno run --allow-net --allow-env --allow-read --allow-write --allow-run \
 # Kagi Translate through bevry-vibes/kagi-translate-client (--kagi-runtime python|deno)
 .venv/bin/python eval/run_eval.py --backend kagi --kagi-runtime python \
   --prompt-style none --src id --tgt en --name kagi-py
+
+# Qwen-MT dedicated translation models on QwenCloud MaaS
+.venv/bin/python eval/run_eval.py --backend qwen --model qwen-mt-flash \
+  --prompt-style none --src id --tgt en --name qwen-mt-flash
 ```
 
 Notes:
 
 - **Workers AI sweep** lists every model Cloudflare tags "Translation" that serves Indonesian — currently only `@cf/meta/m2m100-1.2b`. `@cf/ai4bharat/indictrans2-en-indic-1B` is also tagged Translation but covers English and the 22 Indic languages; for Indonesian it silently returns Hindi, so it is excluded (see the survey for details).
-- **Cost**: Workers AI bills in neurons; the free tier grants 10,000/day. One 78-segment m2m100 run costs well under 1,000 neurons. Kagi Translate usage draws on your Kagi account's translate allowance (check `kagi-translate credits`).
+- **Qwen sweep** drives the `qwen-mt` text-translation family (`qwen-mt-plus/-turbo/-flash/-lite`) through the OpenAI-compatible endpoint with `translation_options`. The LiveTranslate models on the same host are realtime and audio-input-only — the offline sibling `qwen3.8-livetranslate-flash` does not exist on the API — so they cannot join a text benchmark (details in the survey).
+- **Cost**: Workers AI bills in neurons; the free tier grants 10,000/day. One 78-segment m2m100 run costs well under 1,000 neurons. Kagi Translate usage draws on your Kagi account's translate allowance (check `kagi-translate credits`). Qwen-MT bills per token on your QwenCloud account; a full sweep costs cents.
 - **Latency semantics**: hosted rows time one network round trip per sentence against already-warm models, so compare their `s/segment` against local rows accordingly.
 - **AI Gateway vs Workers AI**: Workers AI is the inference platform; AI Gateway is an optional proxy in front of any provider that adds analytics, caching, rate limiting and fallbacks. Direct Workers AI calls need no gateway.
 

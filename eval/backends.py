@@ -319,6 +319,66 @@ class CloudflareBackend:
         return Result(out, time.perf_counter() - started, self.model, "cloudflare")
 
 
+class QwenMtBackend:
+    """Alibaba Qwen-MT dedicated text-translation models on QwenCloud MaaS
+    (https://maas.qwencloudapi.com, OpenAI-compatible endpoint).
+
+    The qwen-mt models take the raw source text plus a `translation_options`
+    object (source_lang "auto", target_lang a full language name) — no prompt.
+    Needs QWENCLOUD_API_KEY in the environment. The LiveTranslate family on
+    this host is realtime/audio-only; its offline sibling does not exist here
+    (verified 2026-09-24, see docs/model-survey.md).
+    """
+
+    loads_local_model = False  # hosted: run_eval skips the RAM fit check, the run lock still applies
+
+    def __init__(self, model: str, api_key: str,
+                 base_url: str = "https://maas.qwencloudapi.com/compatible-mode/v1") -> None:
+        self.model = model
+        self.api_key = api_key
+        self.base_url = base_url.rstrip("/")
+
+    @property
+    def name(self) -> str:
+        return f"qwen:{self.model}"
+
+    def warmup(self, src: str, tgt: str) -> None:
+        try:
+            self.translate(["Halo."], src, tgt)
+        except Exception as exc:  # pragma: no cover - warmup is best effort
+            print(f"[warn] warmup failed for {self.name}: {exc}")
+
+    def translate(self, texts: list[str], src: str, tgt: str) -> Result:
+        out: list[str] = []
+        started = time.perf_counter()
+        waited = 0.0  # backoff time is excluded from the measured latency
+        for text in texts:
+            payload = {
+                "model": self.model,
+                "messages": [{"role": "user", "content": text}],
+                "translation_options": {"source_lang": "auto", "target_lang": LANG_NAMES[tgt]},
+            }
+            attempt = 0
+            while True:
+                call_started = time.perf_counter()
+                try:
+                    body = _post_json(f"{self.base_url}/chat/completions", payload,
+                                      headers={"Authorization": f"Bearer {self.api_key}"})
+                    break
+                except urllib.error.HTTPError as exc:
+                    if exc.code not in (429, 500, 502, 503, 504) or attempt >= 5:
+                        raise
+                    retry_after = (exc.headers.get("Retry-After") or "").strip()
+                    wait = float(retry_after) if retry_after.replace(".", "", 1).isdigit() \
+                        else min(2.0 * 2 ** attempt, 30.0)
+                    waited += time.perf_counter() - call_started + wait
+                    print(f"[warn] {self.model} HTTP {exc.code}; retry {attempt + 1} in {wait:.0f}s")
+                    time.sleep(wait)
+                    attempt += 1
+            out.append(body["choices"][0]["message"]["content"].strip())
+        return Result(out, time.perf_counter() - started - waited, self.model, "qwen")
+
+
 class KagiBackend:
     """Kagi Translate (translate.kagi.com) through bevry-vibes/kagi-translate-client.
 

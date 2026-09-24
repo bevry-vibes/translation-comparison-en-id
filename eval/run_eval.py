@@ -24,6 +24,10 @@ Examples:
   python3 eval/run_eval.py --backend kagi --kagi-runtime python \
       --prompt-style none --src id --tgt en --name kagi-py
 
+  # Qwen-MT dedicated translation models on QwenCloud MaaS (needs QWENCLOUD_API_KEY)
+  python3 eval/run_eval.py --backend qwen --model qwen-mt-flash \
+      --prompt-style none --src id --tgt en --name qwen-mt-flash
+
 Hosted backends (cloudflare, kagi) load no local model, so the memguard RAM fit
 check is skipped for them; the one-benchmark-at-a-time run lock still applies.
 Raw results land in results/*.json; `python3 eval/summarize.py` renders results/results.md.
@@ -45,7 +49,7 @@ import memguard  # noqa: E402
 import metrics  # noqa: E402
 from backends import (  # noqa: E402
     ArgosBackend, CloudflareBackend, KagiBackend, OllamaBackend, OpenAICompatBackend,
-    TransformersBackend,
+    QwenMtBackend, TransformersBackend,
 )
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -84,6 +88,12 @@ def make_backend(args):
             raise SystemExit("kagi backend needs KAGI_SESSION in the environment "
                              "(`set -a; . ./.env; set +a`)")
         return KagiBackend(runtime=args.kagi_runtime, kagi_client_repo=args.kagi_client_repo)
+    if args.backend == "qwen":
+        key = args.qwen_api_key or os.environ.get("QWENCLOUD_API_KEY", "")
+        if not key:
+            raise SystemExit("qwen backend needs QWENCLOUD_API_KEY in the environment "
+                             "(`set -a; . ./.env; set +a`) or --qwen-api-key")
+        return QwenMtBackend(args.model, api_key=key)
     if args.backend == "transformers":
         return TransformersBackend(args.model, family=args.family)
     if args.backend == "argos":
@@ -102,7 +112,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--backend", required=True,
-                        choices=["ollama", "openai", "transformers", "argos", "cloudflare", "kagi"])
+                        choices=["ollama", "openai", "transformers", "argos", "cloudflare", "kagi",
+                                 "qwen"])
     parser.add_argument("--model", default="")
     parser.add_argument("--family", default="seq2seq",
                         help="transformers family: nllb | m2m100 | madlad | opus | seq2seq")
@@ -122,6 +133,8 @@ def parse_args() -> argparse.Namespace:
                         help="which kagi-translate-client CLI to drive (default python)")
     parser.add_argument("--kagi-client-repo", default=None,
                         help="path to bevry-vibes/kagi-translate-client (default $KAGI_CLIENT_REPO)")
+    parser.add_argument("--qwen-api-key", default=None,
+                        help="QwenCloud API key (default $QWENCLOUD_API_KEY)")
     parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--num-ctx", type=int, default=2048)
     parser.add_argument("--think", dest="think", action="store_true", default=None,
