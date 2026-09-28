@@ -86,8 +86,10 @@ def build_messages(text: str, src: str, tgt: str, style: str) -> list[dict]:
 
 
 def _post_chat_retry(url: str, payload: dict, headers: dict, timeout: int = 300) -> tuple[dict, float]:
-    """POST a chat completion with 429/5xx backoff. Returns `(body, waited_seconds)`;
-    the backoff time is returned so callers can keep it out of the measured latency."""
+    """POST a chat completion with 429/5xx/transient-network backoff. Returns
+    `(body, waited_seconds)`; the backoff time is returned so callers can keep it
+    out of the measured latency. Read timeouts (slow reasoning models stall past
+    the socket timeout mid-sweep) and transient connection errors retry like 5xx."""
     waited = 0.0
     attempt = 0
     while True:
@@ -95,15 +97,18 @@ def _post_chat_retry(url: str, payload: dict, headers: dict, timeout: int = 300)
         try:
             return _post_json(url, payload, headers=headers, timeout=timeout), waited
         except urllib.error.HTTPError as exc:
-            if exc.code not in (429, 500, 502, 503, 504) or attempt >= 5:
-                raise
+            transient, detail = exc.code in (429, 500, 502, 503, 504), f"HTTP {exc.code}"
             retry_after = (exc.headers.get("Retry-After") or "").strip()
             wait = float(retry_after) if retry_after.replace(".", "", 1).isdigit() \
                 else min(2.0 * 2 ** attempt, 30.0)
-            waited += time.perf_counter() - call_started + wait
-            print(f"[warn] HTTP {exc.code}; retry {attempt + 1} in {wait:.0f}s")
-            time.sleep(wait)
-            attempt += 1
+        except (TimeoutError, urllib.error.URLError) as exc:  # HTTPError is a URLError subclass: handled above
+            transient, detail, wait = True, f"{type(exc).__name__}: {exc}", min(2.0 * 2 ** attempt, 30.0)
+        if not transient or attempt >= 5:
+            raise
+        waited += time.perf_counter() - call_started + wait
+        print(f"[warn] {detail}; retry {attempt + 1} in {wait:.0f}s")
+        time.sleep(wait)
+        attempt += 1
 
 
 @dataclass
