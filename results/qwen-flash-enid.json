@@ -1,85 +1,85 @@
 {
-  "label": "qwen-mt-flash-enid",
-  "backend": "qwen",
-  "model": "qwen-mt-flash",
-  "prompt_style": "none",
+  "label": "qwen-flash-enid",
+  "backend": "openai",
+  "model": "qwen-flash",
+  "prompt_style": "engine",
   "src": "en",
   "tgt": "id",
   "pairs": 14,
   "metrics": {
-    "bleu": 73.92,
-    "chrf": 87.07,
-    "chrfpp": 86.5
+    "bleu": 69.51,
+    "chrf": 82.06,
+    "chrfpp": 81.49
   },
   "metric_backend": "sacrebleu",
-  "exact_match_rate": 21.43,
-  "seconds_total": 4.95,
-  "seconds_per_sentence": 0.354,
+  "exact_match_rate": 7.14,
+  "seconds_total": 7.3,
+  "seconds_per_sentence": 0.522,
   "chrF_by_category": {
     "acronym": 100.0,
-    "idiom": 100.0,
-    "legal": 92.23,
-    "long-conditional": 85.53,
+    "idiom": 61.75,
+    "legal": 92.94,
+    "long-conditional": 85.6,
     "marketing": 73.26,
     "medical-instruction": 88.42,
-    "numbers-currency": 92.75,
-    "passive": 89.64,
-    "register-formal": 87.81,
-    "relative-clause": 92.24,
+    "numbers-currency": 84.52,
+    "passive": 77.08,
+    "register-formal": 76.46,
+    "relative-clause": 86.27,
     "second-person": 78.71,
-    "simple": 100.0,
-    "software-term": 73.67,
-    "ui-short": 92.68
+    "simple": 84.82,
+    "software-term": 89.69,
+    "ui-short": 69.89
   },
-  "timestamp": "2026-09-28T18:46:11+00:00",
+  "timestamp": "2026-09-28T18:37:02+00:00",
   "samples": [
     {
       "id": "en-id-001",
       "category": "simple",
       "source": "The meeting will start at nine in the morning.",
       "reference": "Rapat akan dimulai pukul sembilan pagi.",
-      "hypothesis": "Rapat akan dimulai pukul sembilan pagi.",
-      "chrf": 100.0
+      "hypothesis": "Pertemuan akan dimulai pukul sembilan pagi.",
+      "chrf": 84.82
     },
     {
       "id": "en-id-002",
       "category": "register-formal",
       "source": "Please submit your documents before Friday.",
       "reference": "Mohon serahkan dokumen Anda sebelum hari Jumat.",
-      "hypothesis": "Harap serahkan dokumen Anda sebelum hari Jumat.",
-      "chrf": 87.81
+      "hypothesis": "Harap mengumpulkan dokumen Anda sebelum hari Jumat.",
+      "chrf": 76.46
     },
     {
       "id": "en-id-003",
       "category": "software-term",
       "source": "This browser is not supported on your device.",
       "reference": "Peramban ini tidak didukung di perangkat Anda.",
-      "hypothesis": "Browser ini tidak didukung pada perangkat Anda.",
-      "chrf": 73.67
+      "hypothesis": "Peramban ini tidak didukung pada perangkat Anda.",
+      "chrf": 89.69
     },
     {
       "id": "en-id-004",
       "category": "numbers-currency",
       "source": "The total cost is $1,250.50, including tax.",
       "reference": "Total biayanya adalah $1.250,50, termasuk pajak.",
-      "hypothesis": "Total biaya adalah $1.250,50, termasuk pajak.",
-      "chrf": 92.75
+      "hypothesis": "Total biayanya adalah 1.250,50 dolar AS, termasuk pajak.",
+      "chrf": 84.52
     },
     {
       "id": "en-id-005",
       "category": "idiom",
       "source": "It is raining cats and dogs outside.",
       "reference": "Di luar sedang hujan deras.",
-      "hypothesis": "Di luar sedang hujan deras.",
-      "chrf": 100.0
+      "hypothesis": "Hujan deras di luar.",
+      "chrf": 61.75
     },
     {
       "id": "en-id-006",
       "category": "legal",
       "source": "Neither party may assign this agreement without prior written consent.",
       "reference": "Tidak ada pihak yang boleh mengalihkan perjanjian ini tanpa persetujuan tertulis terlebih dahulu.",
-      "hypothesis": "Tidak ada pihak yang dapat mengalihkan perjanjian ini tanpa persetujuan tertulis terlebih dahulu.",
-      "chrf": 92.23
+      "hypothesis": "Tidak ada pihak yang boleh menugaskan perjanjian ini tanpa persetujuan tertulis terlebih dahulu.",
+      "chrf": 92.94
     },
     {
       "id": "en-id-007",
@@ -102,16 +102,16 @@
       "category": "long-conditional",
       "source": "If the payment is not received within 30 days, we reserve the right to suspend the account, in accordance with clause 4.2.",
       "reference": "Jika pembayaran tidak diterima dalam waktu 30 hari, kami berhak menangguhkan akun tersebut, sesuai dengan pasal 4.2.",
-      "hypothesis": "Apabila pembayaran tidak diterima dalam waktu 30 hari, kami berhak untuk menangguhkan akun, sesuai dengan ketentuan pasal 4.2.",
-      "chrf": 85.53
+      "hypothesis": "Jika pembayaran tidak diterima dalam waktu 30 hari, kami berhak menangguhkan akun, sesuai dengan klausa 4.2.",
+      "chrf": 85.6
     },
     {
       "id": "en-id-010",
       "category": "passive",
       "source": "The application must be signed by both parties.",
       "reference": "Permohonan itu harus ditandatangani oleh kedua belah pihak.",
-      "hypothesis": "Permohonan tersebut harus ditandatangani oleh kedua belah pihak.",
-      "chrf": 89.64
+      "hypothesis": "Aplikasi harus ditandatangani oleh kedua belah pihak.",
+      "chrf": 77.08
     },
     {
       "id": "en-id-011",
@@ -126,8 +126,8 @@
       "category": "ui-short",
       "source": "Add to cart",
       "reference": "Tambahkan ke keranjang.",
-      "hypothesis": "Tambahkan ke keranjang",
-      "chrf": 92.68
+      "hypothesis": "Tambah ke keranjang",
+      "chrf": 69.89
     },
     {
       "id": "en-id-013",
@@ -142,8 +142,8 @@
       "category": "relative-clause",
       "source": "The man who sold us the tickets said the train had already left.",
       "reference": "Pria yang menjual tiket kepada kami mengatakan bahwa keretanya sudah berangkat.",
-      "hypothesis": "Pria yang menjual tiket kepada kami mengatakan bahwa kereta api itu sudah berangkat.",
-      "chrf": 92.24
+      "hypothesis": "Pria yang menjual tiket kepada kami mengatakan kereta sudah berangkat.",
+      "chrf": 86.27
     }
   ]
 }

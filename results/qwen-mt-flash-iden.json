@@ -7,20 +7,20 @@
   "tgt": "en",
   "pairs": 78,
   "metrics": {
-    "bleu": 43.57,
-    "chrf": 69.9,
-    "chrfpp": 68.02
+    "bleu": 43.56,
+    "chrf": 69.95,
+    "chrfpp": 68.05
   },
   "metric_backend": "sacrebleu",
   "exact_match_rate": 11.54,
-  "seconds_total": 26.42,
-  "seconds_per_sentence": 0.339,
+  "seconds_total": 67.87,
+  "seconds_per_sentence": 0.87,
   "chrF_by_category": {
     "acronym-entity": 92.54,
     "colloquial-register": 47.0,
     "dates": 81.28,
     "do-not-translate": 87.29,
-    "flores-devtest": 73.23,
+    "flores-devtest": 73.38,
     "formal-letter": 60.73,
     "greeting-register": 93.21,
     "idiom": 32.67,
@@ -35,7 +35,7 @@
     "technical-ui": 94.74,
     "time-expression": 55.06
   },
-  "timestamp": "2026-09-24T03:21:07+00:00",
+  "timestamp": "2026-09-28T18:22:11+00:00",
   "samples": [
     {
       "id": "id-en-001",
@@ -202,8 +202,8 @@
       "category": "flores-devtest",
       "source": "Seperti halnya ahli-ahli lain, dia merasa skeptis apakah diabetes dapat disembuhkan, menegaskan bahwa penemuan-penemuan ini tidak relevan dengan orang-orang yang telah mengidap diabetes Jenis 1.",
       "reference": "Like some other experts, he is skeptical about whether diabetes can be cured, noting that these findings have no relevance to people who already have Type 1 diabetes.",
-      "hypothesis": "Like other experts, he remains skeptical about whether diabetes can be cured, emphasizing that these findings are not relevant to people who have already developed Type 1 diabetes.",
-      "chrf": 80.81
+      "hypothesis": "Like other experts, he remains skeptical about whether diabetes can be cured, emphasizing that these findings are not relevant to people who have type 1 diabetes.",
+      "chrf": 79.84
     },
     {
       "id": "flores-4",
@@ -266,8 +266,8 @@
       "category": "flores-devtest",
       "source": "Walau ada satu vaksin eksperimental yang tampaknya mampu mengurangi kematian akibat Ebola, sampai saat ini belum ada obat yang jelas-jelas terbukti cocok untuk mengobati infeksi yang ada.",
       "reference": "While one experimental vaccine appears able to reduce Ebola mortality, up until now, no drugs have been clearly demonstrated suitable for treating existing infection.",
-      "hypothesis": "Although one experimental vaccine appears to reduce Ebola-related deaths, to date there is still no clearly proven treatment for existing infections.",
-      "chrf": 56.04
+      "hypothesis": "Although one experimental vaccine appears to reduce Ebola-related mortality, to date there is still no clearly proven treatment for existing infections.",
+      "chrf": 60.13
     },
     {
       "id": "flores-12",

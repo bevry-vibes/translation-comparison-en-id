@@ -8,14 +8,18 @@ chrF/chrF++/BLEU are corpus-level, 0-100 (higher is better); `metric backend` sa
 
 | model | prompt | pairs | chrF | chrF++ | BLEU | s/sentence | metrics | file |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | --- | --- |
-| `qwen-mt-flash` | none | 14 | **87.26** | 86.71 | 72.48 | 0.327 | sacrebleu | `qwen-mt-flash-enid.json` |
+| `qwen-mt-flash` | none | 14 | **87.07** | 86.5 | 73.92 | 0.354 | sacrebleu | `qwen-mt-flash-enid.json` |
 | `qwen-mt-turbo` | none | 14 | **86.0** | 85.65 | 77.38 | 0.31 | sacrebleu | `qwen-mt-turbo-enid.json` |
+| `qwen3.6-flash` | engine | 14 | **84.57** | 84.16 | 72.39 | 6.987 | sacrebleu | `qwen3.6-flash-enid.json` |
 | `qwen-mt-plus` | none | 14 | **83.99** | 83.61 | 73.05 | 0.302 | sacrebleu | `qwen-mt-plus-enid.json` |
+| `qwen3.5-flash` | engine | 14 | **82.9** | 81.65 | 62.07 | 7.998 | sacrebleu | `qwen3.5-flash-enid.json` |
+| `qwen-flash` | engine | 14 | **82.06** | 81.49 | 69.51 | 0.522 | sacrebleu | `qwen-flash-enid.json` |
 | `qwen-mt-lite` | none | 14 | **82.01** | 81.51 | 69.3 | 0.277 | sacrebleu | `qwen-mt-lite-enid.json` |
 | `translategemma:4b` | translate_gemma | 14 | **80.75** | 79.96 | 62.83 | 2.837 | sacrebleu | `translategemma-4b-enid.json` |
 | `kagi-translate-web` | none | 14 | **80.53** | 80.09 | 69.17 | 0.251 | sacrebleu | `kagi-deno-enid.json` |
 | `kagi-translate-web` | none | 14 | **80.53** | 80.09 | 69.17 | 1.911 | sacrebleu | `kagi-py-enid.json` |
 | `Hy-MT2-1.8B` | hymt2 | 14 | **78.86** | 78.25 | 57.6 | 0.936 | sacrebleu | `hymt2-1.8b-enid.json` |
+| `@cf/zai-org/glm-4.7-flash` | engine | 14 | **71.61** | 70.09 | 50.34 | 13.877 | sacrebleu | `glm-4.7-flash-enid.json` |
 | `@cf/meta/m2m100-1.2b` | none | 14 | **71.49** | 70.24 | 52.53 | 0.81 | sacrebleu | `cf-m2m100-1.2b-deno-enid.json` |
 | `@cf/meta/m2m100-1.2b` | none | 14 | **71.49** | 70.24 | 52.53 | 0.988 | sacrebleu | `cf-m2m100-1.2b-enid.json` |
 
@@ -28,14 +32,14 @@ chrF/chrF++/BLEU are corpus-level, 0-100 (higher is better); `metric backend` sa
 | second-person | 78.71 |
 | long-conditional | 85.53 |
 | register-formal | 87.81 |
+| medical-instruction | 88.42 |
 | passive | 89.64 |
-| idiom | 89.65 |
 | legal | 92.23 |
 | relative-clause | 92.24 |
 | ui-short | 92.68 |
 | numbers-currency | 92.75 |
 | acronym | 100.0 |
-| medical-instruction | 100.0 |
+| idiom | 100.0 |
 | simple | 100.0 |
 
 ## id->en
@@ -44,10 +48,14 @@ chrF/chrF++/BLEU are corpus-level, 0-100 (higher is better); `metric backend` sa
 | --- | --- | ---: | ---: | ---: | ---: | ---: | --- | --- |
 | `kagi-translate-web` | none | 78 | **74.82** | 73.2 | 53.12 | 0.255 | sacrebleu | `kagi-deno-iden.json` |
 | `kagi-translate-web` | none | 78 | **74.82** | 73.2 | 53.12 | 1.538 | sacrebleu | `kagi-py-iden.json` |
-| `qwen-mt-turbo` | none | 78 | **71.77** | 70.02 | 46.62 | 0.508 | sacrebleu | `qwen-mt-turbo-iden.json` |
+| `qwen3.5-flash` | engine | 78 | **72.11** | 70.58 | 48.92 | 16.883 | sacrebleu | `qwen3.5-flash-iden.json` |
+| `qwen-mt-turbo` | none | 78 | **71.94** | 70.17 | 46.68 | 0.782 | sacrebleu | `qwen-mt-turbo-iden.json` |
+| `qwen-flash` | engine | 78 | **71.67** | 70.13 | 48.81 | 0.456 | sacrebleu | `qwen-flash-iden.json` |
+| `qwen3.6-flash` | engine | 78 | **71.62** | 69.79 | 46.59 | 7.579 | sacrebleu | `qwen3.6-flash-iden.json` |
 | `qwen-mt-lite` | none | 78 | **71.26** | 69.58 | 46.47 | 1.08 | sacrebleu | `qwen-mt-lite-iden.json` |
 | `qwen-mt-plus` | none | 78 | **70.68** | 68.67 | 43.61 | 0.739 | sacrebleu | `qwen-mt-plus-iden.json` |
-| `qwen-mt-flash` | none | 78 | **69.9** | 68.02 | 43.57 | 0.339 | sacrebleu | `qwen-mt-flash-iden.json` |
+| `@cf/zai-org/glm-4.7-flash` | engine | 78 | **70.11** | 68.52 | 45.13 | 17.102 | sacrebleu | `glm-4.7-flash-iden.json` |
+| `qwen-mt-flash` | none | 78 | **69.95** | 68.05 | 43.56 | 0.87 | sacrebleu | `qwen-mt-flash-iden.json` |
 | `@cf/meta/m2m100-1.2b` | none | 78 | **66.9** | 65.12 | 43.06 | 1.169 | sacrebleu | `cf-m2m100-1.2b-deno-iden.json` |
 | `@cf/meta/m2m100-1.2b` | none | 78 | **66.9** | 65.12 | 43.06 | 1.382 | sacrebleu | `cf-m2m100-1.2b-iden.json` |
 | `translategemma:4b` | translate_gemma | 78 | **64.87** | 63.1 | 38.79 | 4.355 | sacrebleu | `translategemma-4b-iden.json` |
