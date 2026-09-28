@@ -28,6 +28,16 @@ Examples:
   python3 eval/run_eval.py --backend qwen --model qwen-mt-flash \
       --prompt-style none --src id --tgt en --name qwen-mt-flash
 
+  # QwenCloud chat models through the same OpenAI-compatible endpoint with the
+  # production `engine` prompt (system instruction + raw source text)
+  python3 eval/run_eval.py --backend openai --model qwen-flash \
+      --base-url https://maas.qwencloudapi.com/compatible-mode/v1 \
+      --api-key "$QWENCLOUD_API_KEY" --prompt-style engine --src id --tgt en --name qwen-flash
+
+  # Workers AI chat fallback (glm-4.7-flash), mirroring the production request shape
+  python3 eval/run_eval.py --backend cloudflare-chat --model '@cf/zai-org/glm-4.7-flash' \
+      --prompt-style engine --src id --tgt en --name glm-4.7-flash
+
 Hosted backends (cloudflare, kagi) load no local model, so the memguard RAM fit
 check is skipped for them; the one-benchmark-at-a-time run lock still applies.
 Raw results land in results/*.json; `python3 eval/summarize.py` renders results/results.md.
@@ -49,7 +59,7 @@ import memguard  # noqa: E402
 import metrics  # noqa: E402
 from backends import (  # noqa: E402
     ArgosBackend, CloudflareBackend, KagiBackend, OllamaBackend, OpenAICompatBackend,
-    QwenMtBackend, TransformersBackend,
+    QwenMtBackend, TransformersBackend, WorkersAiChatBackend,
 )
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -83,6 +93,14 @@ def make_backend(args):
             raise SystemExit("cloudflare backend needs CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID "
                              "in the environment (`set -a; . ./.env; set +a`) or --api-key/--account-id")
         return CloudflareBackend(args.model, account_id=account, api_token=token)
+    if args.backend == "cloudflare-chat":
+        token = args.api_key if args.api_key != "not-needed" else os.environ.get("CLOUDFLARE_API_TOKEN", "")
+        account = args.account_id or os.environ.get("CLOUDFLARE_ACCOUNT_ID", "")
+        if not token or not account:
+            raise SystemExit("cloudflare-chat backend needs CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID "
+                             "in the environment (`set -a; . ./.env; set +a`) or --api-key/--account-id")
+        return WorkersAiChatBackend(args.model or "@cf/zai-org/glm-4.7-flash",
+                                    account_id=account, api_token=token)
     if args.backend == "kagi":
         if not os.environ.get("KAGI_SESSION"):
             raise SystemExit("kagi backend needs KAGI_SESSION in the environment "
@@ -112,13 +130,15 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--backend", required=True,
-                        choices=["ollama", "openai", "transformers", "argos", "cloudflare", "kagi",
-                                 "qwen"])
+                        choices=["ollama", "openai", "transformers", "argos", "cloudflare",
+                                 "cloudflare-chat", "kagi", "qwen"])
     parser.add_argument("--model", default="")
     parser.add_argument("--family", default="seq2seq",
                         help="transformers family: nllb | m2m100 | madlad | opus | seq2seq")
     parser.add_argument("--prompt-style", default="generic",
-                        choices=["generic", "translate_gemma", "hymt2", "none"])
+                        choices=["generic", "translate_gemma", "hymt2", "engine", "none"],
+                        help="`engine` mirrors the production translator's request shape: "
+                             "a translation-engine system instruction plus the raw source text")
     parser.add_argument("--src", default="id")
     parser.add_argument("--tgt", default="en")
     parser.add_argument("--testset", default=str(DEFAULT_TESTSET))

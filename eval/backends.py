@@ -58,6 +58,54 @@ def build_prompt(text: str, src: str, tgt: str, style: str) -> str:
     )
 
 
+def engine_system_prompt(src: str, tgt: str) -> str:
+    """The production translation-engine system instruction, verbatim from
+    patipeaceplace's `plugins/auto-translate/src/providers.mjs` (`glmTranslate`):
+    a translation-engine instruction, output only the translation."""
+    return (
+        f"You are a translation engine. Translate the user's text from "
+        f"{LANG_NAMES[src]} to {LANG_NAMES[tgt]}. Output only the translation, "
+        f"preserving paragraph breaks. No notes, no reasoning, no alternatives."
+    )
+
+
+def build_messages(text: str, src: str, tgt: str, style: str) -> list[dict]:
+    """Chat message array per prompt style.
+
+    Every style except `engine` wraps `build_prompt` in a single user message.
+    `engine` mirrors the production translator's request shape exactly: the
+    translation-engine instruction as the system message, the raw source text
+    as the user message (see `engine_system_prompt`).
+    """
+    if style == "engine":
+        return [
+            {"role": "system", "content": engine_system_prompt(src, tgt)},
+            {"role": "user", "content": text},
+        ]
+    return [{"role": "user", "content": build_prompt(text, src, tgt, style)}]
+
+
+def _post_chat_retry(url: str, payload: dict, headers: dict, timeout: int = 300) -> tuple[dict, float]:
+    """POST a chat completion with 429/5xx backoff. Returns `(body, waited_seconds)`;
+    the backoff time is returned so callers can keep it out of the measured latency."""
+    waited = 0.0
+    attempt = 0
+    while True:
+        call_started = time.perf_counter()
+        try:
+            return _post_json(url, payload, headers=headers, timeout=timeout), waited
+        except urllib.error.HTTPError as exc:
+            if exc.code not in (429, 500, 502, 503, 504) or attempt >= 5:
+                raise
+            retry_after = (exc.headers.get("Retry-After") or "").strip()
+            wait = float(retry_after) if retry_after.replace(".", "", 1).isdigit() \
+                else min(2.0 * 2 ** attempt, 30.0)
+            waited += time.perf_counter() - call_started + wait
+            print(f"[warn] HTTP {exc.code}; retry {attempt + 1} in {wait:.0f}s")
+            time.sleep(wait)
+            attempt += 1
+
+
 @dataclass
 class Result:
     texts: list[str]
@@ -129,7 +177,8 @@ class OllamaBackend:
 
 class OpenAICompatBackend:
     """Any OpenAI-compatible server: LM Studio, llama.cpp `llama-server`, vLLM,
-    SGLang, text-generation-inference, etc."""
+    SGLang, text-generation-inference, hosted MaaS gateways (QwenCloud
+    compatible-mode), etc."""
 
     def __init__(self, model: str, base_url: str = "http://127.0.0.1:1234/v1",
                  api_key: str = "not-needed", prompt_style: str = "generic",
@@ -153,20 +202,21 @@ class OpenAICompatBackend:
     def translate(self, texts: list[str], src: str, tgt: str) -> Result:
         out: list[str] = []
         started = time.perf_counter()
+        waited = 0.0  # backoff time is excluded from the measured latency
         for text in texts:
             payload = {
                 "model": self.model,
-                "messages": [{"role": "user",
-                              "content": build_prompt(text, src, tgt, self.prompt_style)}],
+                "messages": build_messages(text, src, tgt, self.prompt_style),
                 "temperature": self.temperature,
                 "stream": False,
             }
-            body = _post_json(
+            body, retry_waited = _post_chat_retry(
                 f"{self.base_url}/chat/completions", payload,
                 headers={"Authorization": f"Bearer {self.api_key}"},
             )
+            waited += retry_waited
             out.append(body["choices"][0]["message"]["content"].strip())
-        return Result(out, time.perf_counter() - started, self.model, "openai-compat")
+        return Result(out, time.perf_counter() - started - waited, self.model, "openai-compat")
 
 
 class TransformersBackend:
@@ -358,25 +408,72 @@ class QwenMtBackend:
                 "messages": [{"role": "user", "content": text}],
                 "translation_options": {"source_lang": "auto", "target_lang": LANG_NAMES[tgt]},
             }
-            attempt = 0
-            while True:
-                call_started = time.perf_counter()
-                try:
-                    body = _post_json(f"{self.base_url}/chat/completions", payload,
-                                      headers={"Authorization": f"Bearer {self.api_key}"})
-                    break
-                except urllib.error.HTTPError as exc:
-                    if exc.code not in (429, 500, 502, 503, 504) or attempt >= 5:
-                        raise
-                    retry_after = (exc.headers.get("Retry-After") or "").strip()
-                    wait = float(retry_after) if retry_after.replace(".", "", 1).isdigit() \
-                        else min(2.0 * 2 ** attempt, 30.0)
-                    waited += time.perf_counter() - call_started + wait
-                    print(f"[warn] {self.model} HTTP {exc.code}; retry {attempt + 1} in {wait:.0f}s")
-                    time.sleep(wait)
-                    attempt += 1
+            body, retry_waited = _post_chat_retry(
+                f"{self.base_url}/chat/completions", payload,
+                headers={"Authorization": f"Bearer {self.api_key}"},
+            )
+            waited += retry_waited
             out.append(body["choices"][0]["message"]["content"].strip())
         return Result(out, time.perf_counter() - started - waited, self.model, "qwen")
+
+
+class WorkersAiChatBackend:
+    """A chat-completion model on Cloudflare Workers AI, prompted to translate —
+    the production fallback shape, verbatim from patipeaceplace's
+    `plugins/auto-translate/src/providers.mjs` (`glmTranslate`): the `engine`
+    system instruction plus the raw source text, `stream: false`, and only
+    `choices[0].message.content` read (`result.response` tolerated). Reasoning
+    arrives as a separate `reasoning` field, exactly as production sees it.
+
+    The model id contains `/` — the SDK's URL-encoding bug still applies, so
+    calls go through the SDK's generic request path (see `CloudflareBackend`).
+    """
+
+    loads_local_model = False  # hosted: run_eval skips the RAM fit check, the run lock still applies
+
+    def __init__(self, model: str, account_id: str, api_token: str) -> None:
+        self.model = model
+        self.account_id = account_id
+        self.api_token = api_token
+        self._client = None
+
+    @property
+    def name(self) -> str:
+        return f"cloudflare:{self.model}"
+
+    def _load(self):
+        if self._client is None:
+            from cloudflare import Cloudflare  # lazy: the local backends stay install-free
+
+            self._client = Cloudflare(api_token=self.api_token)
+        return self._client
+
+    def warmup(self, src: str, tgt: str) -> None:
+        try:
+            self.translate(["Halo."], src, tgt)
+        except Exception as exc:  # pragma: no cover - warmup is best effort
+            print(f"[warn] warmup failed for {self.name}: {exc}")
+
+    def translate(self, texts: list[str], src: str, tgt: str) -> Result:
+        client = self._load()
+        path = f"/accounts/{self.account_id}/ai/run/{self.model}"
+        out: list[str] = []
+        started = time.perf_counter()
+        for text in texts:
+            body = client.post(path, body={"messages": build_messages(text, src, tgt, "engine"),
+                                           "stream": False}, cast_to=object)
+            if not isinstance(body, dict) or not body.get("success"):
+                raise RuntimeError(f"cloudflare: bad envelope from {self.model}: {str(body)[:200]}")
+            result = body.get("result") or {}
+            translated = result.get("choices", [{}])[0].get("message", {}).get("content") \
+                if isinstance(result.get("choices"), list) and result["choices"] \
+                else result.get("response")
+            if not isinstance(translated, str) or not translated.strip():
+                raise RuntimeError(
+                    f"cloudflare: empty result from {self.model}: {str(result)[:200]}"
+                )
+            out.append(translated.strip())
+        return Result(out, time.perf_counter() - started, self.model, "cloudflare-chat")
 
 
 class KagiBackend:

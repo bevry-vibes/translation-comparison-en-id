@@ -37,7 +37,7 @@ python3 eval/summarize.py
 | --- | --- |
 | `eval/build_testset.py` | builds `data/testset.jsonl` from FLORES-101 devtest (ungated mirror), Tatoeba (OPUS) and `data/curated.jsonl` |
 | `eval/run_eval.py` | runs a backend over one direction, scores it, dumps every source/reference/hypothesis to `results/*.json` |
-| `eval/backends.py` | Ollama, OpenAI-compatible (LM Studio / llama-server / vLLM), Transformers (NLLB, M2M-100, MADLAD, OPUS-MT), Argos, Cloudflare Workers AI (official SDK), Kagi Translate, and Qwen-MT (QwenCloud MaaS) adapters, plus the per-family prompt templates |
+| `eval/backends.py` | Ollama, OpenAI-compatible (LM Studio / llama-server / vLLM / hosted MaaS gateways), Transformers (NLLB, M2M-100, MADLAD, OPUS-MT), Argos, Cloudflare Workers AI (official SDK, NMT and chat shapes), Kagi Translate, and Qwen-MT (QwenCloud MaaS) adapters, plus the per-family prompt templates |
 | `eval/metrics.py` | corpus chrF / chrF++ / BLEU + per-sentence chrF; uses `sacrebleu` when installed, otherwise a stdlib fallback |
 | `eval/deno/run_eval.ts` | like-for-like Deno harness for the Workers AI sweep: same test set, same metric formulas, same results JSON and run lock, so `summarize.py` renders both clients into one table |
 | `eval/memguard.py` | RAM-fit check, single-run lock and Ollama model eviction — stops a benchmark from exhausting the machine's memory |
@@ -49,7 +49,7 @@ python3 eval/summarize.py
 Design choices worth knowing:
 
 - **stdlib-first**: the HTTP backends need only the Python standard library. You can benchmark Ollama and LM Studio models on any machine, with no torch install.
-- **prompt-style per family**: `translate_gemma` uses Google's published evaluation prompt, `hymt2` uses Tencent's instruction wording, `generic` for general LLMs, `none` for dedicated NMT.
+- **prompt-style per family**: `translate_gemma` uses Google's published evaluation prompt, `hymt2` uses Tencent's instruction wording, `generic` for general LLMs, `none` for dedicated NMT, and `engine` mirrors the production translator's request shape (a translation-engine system instruction plus the raw source text as the user message — the exact contract of patipeaceplace's `glmTranslate`).
 - **warm-up before timing**: the first call loads the model, so it is executed before the clock starts (`--no-warmup` to disable).
 - **per-category chrF**: aggregate scores hide exactly the failures that matter (idioms, numbers, do-not-translate entities), so scores are also grouped by category.
 - **memory-guarded runs**: `eval/memguard.py` refuses to start a run that does not fit in available RAM. It allows one benchmark at a time, and it evicts the Ollama model after the run. A benchmark can no longer push the machine into swap.
@@ -66,7 +66,12 @@ Server-side, start Ollama with `OLLAMA_MAX_LOADED_MODELS=1 OLLAMA_NUM_PARALLEL=1
 
 ## Hosted providers (Cloudflare Workers AI + Kagi Translate + Qwen-MT)
 
-The hosted backends load no model on this machine, so `memguard` skips the RAM fit check for them; the single-run lock still applies. `bash scripts/run-cloud.sh [cloudflare|kagi|qwen|both|all] [id-en|en-id|both]` runs each provider's sweep in both directions and regenerates the table.
+The hosted backends load no model on this machine, so `memguard` skips the RAM fit check for them; the single-run lock still applies. `bash scripts/run-cloud.sh [cloudflare|kagi|qwen|qwen-chat|glm|replacement|both|all] [id-en|en-id|both]` runs each provider's sweep in both directions and regenerates the table.
+
+- `qwen` — the `qwen-mt` dedicated translation family through `translation_options`.
+- `qwen-chat` — regular QwenCloud chat models (`qwen-flash`, `qwen3.6-flash`, `qwen3.5-flash` — the console-raisable-rate-limit set) through the compatible-mode endpoint with the production `engine` prompt.
+- `glm` — the production Workers AI chat fallback (`@cf/zai-org/glm-4.7-flash`) through the same `engine` prompt.
+- `replacement` — the qwen-mt-turbo retirement sweep in one go: `qwen-mt-flash` (survivor) + `qwen-mt-turbo` (retiring baseline) + the chat set + glm.
 
 Setup:
 
@@ -101,12 +106,21 @@ deno run --allow-net --allow-env --allow-read --allow-write --allow-run \
 # Qwen-MT dedicated translation models on QwenCloud MaaS
 .venv/bin/python eval/run_eval.py --backend qwen --model qwen-mt-flash \
   --prompt-style none --src id --tgt en --name qwen-mt-flash
+
+# QwenCloud chat models through the production `engine` prompt (raisable rate limits)
+.venv/bin/python eval/run_eval.py --backend openai --model qwen-flash \
+  --base-url https://maas.qwencloudapi.com/compatible-mode/v1 \
+  --api-key "$QWENCLOUD_API_KEY" --prompt-style engine --src id --tgt en --name qwen-flash
+
+# Workers AI chat fallback (glm-4.7-flash), production request shape
+.venv/bin/python eval/run_eval.py --backend cloudflare-chat --model '@cf/zai-org/glm-4.7-flash' \
+  --prompt-style engine --src id --tgt en --name glm-4.7-flash
 ```
 
 Notes:
 
 - **Workers AI sweep** lists every model Cloudflare tags "Translation" that serves Indonesian — currently only `@cf/meta/m2m100-1.2b`. `@cf/ai4bharat/indictrans2-en-indic-1B` is also tagged Translation but covers English and the 22 Indic languages; for Indonesian it silently returns Hindi, so it is excluded (see the survey for details).
-- **Qwen sweep** drives the `qwen-mt` text-translation family (`qwen-mt-plus/-turbo/-flash/-lite`) through the OpenAI-compatible endpoint with `translation_options`. The LiveTranslate models on the same host are realtime and audio-input-only — the offline sibling `qwen3.8-livetranslate-flash` does not exist on the API — so they cannot join a text benchmark (details in the survey).
+- **Qwen sweep** drives the `qwen-mt` text-translation family (`qwen-mt-plus/-turbo/-flash/-lite`) through the OpenAI-compatible endpoint with `translation_options`. The LiveTranslate models on the same host are realtime and audio-input-only — the offline sibling `qwen3.8-livetranslate-flash` does not exist on the API — so they cannot join a text benchmark (details in the survey). The **qwen-chat sweep** drives regular QwenCloud chat models through the same endpoint's compatible mode with the production `engine` prompt; the chat ids accept console rate-limit raises where the `qwen-mt` family does not.
 - **Cost**: Workers AI bills in neurons; the free tier grants 10,000/day. One 78-segment m2m100 run costs well under 1,000 neurons. Kagi Translate usage draws on your Kagi account's translate allowance (check `kagi-translate credits`). Qwen-MT bills per token on your QwenCloud account; a full sweep costs cents.
 - **Latency semantics**: hosted rows time one network round trip per sentence against already-warm models, so compare their `s/segment` against local rows accordingly.
 - **AI Gateway vs Workers AI**: Workers AI is the inference platform; AI Gateway is an optional proxy in front of any provider that adds analytics, caching, rate limiting and fallbacks. Direct Workers AI calls need no gateway.
