@@ -136,9 +136,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--family", default="seq2seq",
                         help="transformers family: nllb | m2m100 | madlad | opus | seq2seq")
     parser.add_argument("--prompt-style", default="generic",
-                        choices=["generic", "translate_gemma", "hymt2", "engine", "none"],
+                        choices=["generic", "translate_gemma", "hymt2", "engine",
+                                 "engine-preserve", "none"],
                         help="`engine` mirrors the production translator's request shape: "
-                             "a translation-engine system instruction plus the raw source text")
+                             "a translation-engine system instruction plus the raw source text; "
+                             "`engine-preserve` adds an explicit keep-the-U+E000..U+E001 "
+                             "placeholder-tokens-verbatim instruction")
     parser.add_argument("--src", default="id")
     parser.add_argument("--tgt", default="en")
     parser.add_argument("--testset", default=str(DEFAULT_TESTSET))
@@ -220,6 +223,7 @@ def run(args: argparse.Namespace) -> None:
         "prompt_style": args.prompt_style,
         "src": args.src,
         "tgt": args.tgt,
+        "testset": Path(args.testset).name,
         "pairs": len(pairs),
         "metrics": scores,
         "metric_backend": metrics.metric_backend(),

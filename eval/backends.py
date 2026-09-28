@@ -69,6 +69,19 @@ def engine_system_prompt(src: str, tgt: str) -> str:
     )
 
 
+def engine_preserve_system_prompt(src: str, tgt: str) -> str:
+    """The production engine instruction plus an explicit placeholder-
+    preservation clause for token-masked segments: names arrive wrapped in
+    U+E000 + index + U+E001 private-use tokens (patipeaceplace `protectTerms`)
+    and must survive the provider verbatim."""
+    return (
+        engine_system_prompt(src, tgt)
+        + " Placeholder tokens of the form \uE000<digits>\uE001 mark protected names: "
+          "copy each token exactly as written, never translate, reorder, renumber, "
+          "merge, split, or drop tokens."
+    )
+
+
 def build_messages(text: str, src: str, tgt: str, style: str) -> list[dict]:
     """Chat message array per prompt style.
 
@@ -80,6 +93,11 @@ def build_messages(text: str, src: str, tgt: str, style: str) -> list[dict]:
     if style == "engine":
         return [
             {"role": "system", "content": engine_system_prompt(src, tgt)},
+            {"role": "user", "content": text},
+        ]
+    if style == "engine-preserve":
+        return [
+            {"role": "system", "content": engine_preserve_system_prompt(src, tgt)},
             {"role": "user", "content": text},
         ]
     return [{"role": "user", "content": build_prompt(text, src, tgt, style)}]
@@ -184,6 +202,8 @@ class OpenAICompatBackend:
     """Any OpenAI-compatible server: LM Studio, llama.cpp `llama-server`, vLLM,
     SGLang, text-generation-inference, hosted MaaS gateways (QwenCloud
     compatible-mode), etc."""
+
+    loads_local_model = False  # the model loads out of process (or remotely), never into this one
 
     def __init__(self, model: str, base_url: str = "http://127.0.0.1:1234/v1",
                  api_key: str = "not-needed", prompt_style: str = "generic",

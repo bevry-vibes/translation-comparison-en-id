@@ -14,6 +14,10 @@ def main() -> None:
     rows = []
     for path in sorted(RESULTS.glob("*.json")):
         payload = json.loads(path.read_text(encoding="utf-8"))
+        # Only the default test set renders in the main tables; specialised
+        # sets (masked.jsonl for token survival) have their own summaries.
+        if payload.get("testset", "testset.jsonl") != "testset.jsonl":
+            continue
         rows.append(payload)
     if not rows:
         print("no results yet - run eval/run_eval.py first")

@@ -36,9 +36,11 @@ python3 eval/summarize.py
 | file | purpose |
 | --- | --- |
 | `eval/build_testset.py` | builds `data/testset.jsonl` from FLORES-101 devtest (ungated mirror), Tatoeba (OPUS) and `data/curated.jsonl` |
+| `eval/build_masked_testset.py` | builds `data/masked.jsonl`: name-heavy segments with production-style masking — every name wrapped in `U+E000 + index + U+E001`, longest-form-first glossary, exactly patipeaceplace's `protectTerms` |
 | `eval/run_eval.py` | runs a backend over one direction, scores it, dumps every source/reference/hypothesis to `results/*.json` |
 | `eval/backends.py` | Ollama, OpenAI-compatible (LM Studio / llama-server / vLLM / hosted MaaS gateways), Transformers (NLLB, M2M-100, MADLAD, OPUS-MT), Argos, Cloudflare Workers AI (official SDK, NMT and chat shapes), Kagi Translate, and Qwen-MT (QwenCloud MaaS) adapters, plus the per-family prompt templates |
 | `eval/metrics.py` | corpus chrF / chrF++ / BLEU + per-sentence chrF; uses `sacrebleu` when installed, otherwise a stdlib fallback |
+| `eval/token_survival.py` | scores masked-set runs: did every token + index survive, was anything renumbered or left behind, and does every name round-trip after restoration; renders `results/token-survival.md` |
 | `eval/deno/run_eval.ts` | like-for-like Deno harness for the Workers AI sweep: same test set, same metric formulas, same results JSON and run lock, so `summarize.py` renders both clients into one table |
 | `eval/memguard.py` | RAM-fit check, single-run lock and Ollama model eviction — stops a benchmark from exhausting the machine's memory |
 | `eval/summarize.py` | renders `results/*.json` into `results/results.md` |
@@ -49,7 +51,7 @@ python3 eval/summarize.py
 Design choices worth knowing:
 
 - **stdlib-first**: the HTTP backends need only the Python standard library. You can benchmark Ollama and LM Studio models on any machine, with no torch install.
-- **prompt-style per family**: `translate_gemma` uses Google's published evaluation prompt, `hymt2` uses Tencent's instruction wording, `generic` for general LLMs, `none` for dedicated NMT, and `engine` mirrors the production translator's request shape (a translation-engine system instruction plus the raw source text as the user message — the exact contract of patipeaceplace's `glmTranslate`).
+- **prompt-style per family**: `translate_gemma` uses Google's published evaluation prompt, `hymt2` uses Tencent's instruction wording, `generic` for general LLMs, `none` for dedicated NMT, `engine` mirrors the production translator's request shape (a translation-engine system instruction plus the raw source text as the user message — the exact contract of patipeaceplace's `glmTranslate`), and `engine-preserve` adds an explicit keep-the-U+E000..U+E001 placeholder-tokens-verbatim clause for masked segments.
 - **warm-up before timing**: the first call loads the model, so it is executed before the clock starts (`--no-warmup` to disable).
 - **per-category chrF**: aggregate scores hide exactly the failures that matter (idioms, numbers, do-not-translate entities), so scores are also grouped by category.
 - **memory-guarded runs**: `eval/memguard.py` refuses to start a run that does not fit in available RAM. It allows one benchmark at a time, and it evicts the Ollama model after the run. A benchmark can no longer push the machine into swap.
@@ -115,6 +117,12 @@ deno run --allow-net --allow-env --allow-read --allow-write --allow-run \
 # Workers AI chat fallback (glm-4.7-flash), production request shape
 .venv/bin/python eval/run_eval.py --backend cloudflare-chat --model '@cf/zai-org/glm-4.7-flash' \
   --prompt-style engine --src id --tgt en --name glm-4.7-flash
+
+# Token survival on masked names: does the model eat private-use placeholders?
+python3 eval/build_masked_testset.py
+.venv/bin/python eval/run_eval.py --backend qwen --model qwen-mt-lite \
+  --prompt-style none --testset data/masked.jsonl --src id --tgt en --name qwen-mt-lite-masked
+python3 eval/token_survival.py   # renders results/token-survival.md
 ```
 
 Notes:
