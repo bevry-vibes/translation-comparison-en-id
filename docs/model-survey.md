@@ -21,7 +21,7 @@ Everything below was checked against the live model hubs
 | Need register/glossary/format control in one pass (subtitles, legal, redaction) | **Hy-MT2-7B** or **TranslateGemma 12B** with instructions | Both follow translation instructions (keep terms untranslated, SRT format, style) |
 | Multiple local languages (Javanese, Sundanese) as well | **SEA-LION** (`Gemma-SEA-LION-v3-9B-IT`) or **Sahabat-AI** (`llama3-8b-cpt-sahabatai-v1`) | SEA-tuned LLMs, Indonesian + regional languages |
 | Deploying on Cloudflare Workers AI | **m2m100-1.2b** — the only id⇄en translation model there | Measured chrF 66.90 id→en (above local 4B tier), but 71.49 en→id (well below); segment first (it drops multi-sentence input) |
-| Hosted translation on QwenCloud MaaS | **qwen-mt-flash** (`qwen-mt-turbo` retires 2026-10-10) | Measured chrF **87.07** en→id — best measured anywhere; id→en 69.95 with turbo-identical entity behaviour; see [the retirement sweep](#the-qwen-mt-turbo-retirement-and-the-replacement-sweep-2026-09-28) |
+| Hosted translation on QwenCloud MaaS | **qwen-flash** with a placeholder-preservation instruction (`qwen-mt-turbo` retires 2026-10-10; `qwen-mt-flash` fails masked-name token survival) | chrF 71.67 id→en / 82.06 en→id, 10/10 token survival both directions, raisable rate limits; see [token survival](#token-survival-masked-name-protection-added-2026-09-29) |
 | Hosted quality reference / fastest integration | **Kagi Translate** (via bevry-vibes/kagi-translate-client) | Best measured id→en (chrF **74.82**); ties TranslateGemma 4B on en→id; session-cookie client, no public API used |
 
 Rule of thumb: **specialised MT models (TranslateGemma, Hy-MT2) beat general local LLMs of the same size for Indonesian**, and a 4B specialised model is often better than a 12B general one.
@@ -227,9 +227,13 @@ The deployment question expanded to QwenCloud (`maas.qwencloudapi.com`, OpenAI-c
   **not raisable**, and the console rate-limit-raise list covers chat models only
   (`qwen3.6-plus`, `qwen3.6-flash`, `qwen3.5-flash`, `qwen3.5-plus`, `qwen-flash`, …);
   no `qwen-mt` model is on it. The replacement benchmark and the updated recommendation
-  are in [the retirement sweep](#the-qwen-mt-turbo-retirement-and-the-replacement-sweep-2026-09-28):
-  **qwen-mt-flash** is the production default, `qwen-flash` the raisable-rate-limit
-  alternative, glm-4.7-flash stays the outage fallback.
+  are in [the retirement sweep](#the-qwen-mt-turbo-retirement-and-the-replacement-sweep-2026-09-28),
+  superseded on 2026-09-29 by
+  [token survival](#token-survival-masked-name-protection-added-2026-09-29): masked-name
+  testing eliminated `qwen-mt-flash` (it eats the production placeholder tokens) and the
+  Workers AI fallback `glm-4.7-flash`; the current recommendation is **qwen-flash with a
+  placeholder-preservation instruction**, with `qwen-mt-lite` as the zero-protocol-change
+  alternative.
 
 ## 5. Runtimes: how to actually run these locally
 
@@ -439,7 +443,11 @@ Findings:
   retries transient timeouts so the run survives, but an unattended cron would have
   hung twice for five minutes; a reliability strike against it.
 
-Recommendation (for the production site; grounded in the tables above):
+Recommendation (for the production site; grounded in the tables above —
+**superseded 2026-09-29**: the plain-text ranking missed masked-name token survival, see
+[the token-survival section](#token-survival-masked-name-protection-added-2026-09-29)
+for the rewritten recommendation; qwen-mt-flash, recommended here as the default, fails
+the masked test):
 
 - **Default: qwen-mt-flash.** Best en→id measured anywhere (87.07); id→en within 2.0
   chrF of the retiring turbo and above every non-QwenCloud option; entity behaviour
@@ -465,6 +473,96 @@ Recommendation (for the production site; grounded in the tables above):
   is nominally the best Qwen id→en at 72.11), but thinking latency (7–17 s/s) and the
   qwen3.5 stalls blow the cron budget. Revisit if a non-thinking variant of that
   quality tier appears.
+
+### Token survival: masked-name protection (added 2026-09-29)
+
+The plain-text sweep above has a blind spot the production pipeline hit the same week:
+patipeaceplace's translator masks every known name form into a private-use placeholder
+before the provider sees the text (`protectTerms`: the form is replaced by
+`U+E000 + <0-based glossary index> + U+E001`, glossary sorted longest-form-first,
+self-mapping), then restores the tokens afterwards and asserts every name survived.
+With that scheme live, a **qwen-mt-flash** regeneration dropped the masked names of
+"Petrus", "Nanik" and the organisation name across an article (five survival-assertion
+flags) while **qwen-mt-turbo** handled two full articles clean — and the chrF benchmark
+never saw it, because none of its segments were masked.
+
+`eval/build_masked_testset.py` builds `data/masked.jsonl` to close that gap: 20
+name-heavy segments (10 per direction, production staff + organisation names, some with
+repeated occurrences), masked exactly like production. `eval/token_survival.py` scores
+each hypothesis strictly: every expected token must survive with the right index and
+count, nothing may be renumbered or left behind, and every name must round-trip through
+restoration. Chat models were run with a new **`engine-preserve`** prompt (the
+production engine instruction plus an explicit "copy every
+`U+E000<digits>U+E001` token verbatim" clause); the qwen-mt models got the raw masked
+text (their production shape). Strict verdicts — one dropped name fails the run:
+
+| model | prompt | id→en survived | en→id survived | verdict | plain-set chrF id→en / en→id |
+| --- | --- | ---: | ---: | --- | --- |
+| qwen-flash | engine-preserve | **10/10** | **10/10** | **PASS** | 71.67 / 82.06 |
+| qwen-mt-lite | none (raw) | **10/10** | **10/10** | **PASS** | 71.26 / 82.01 |
+| qwen3.6-flash | engine-preserve | **10/10** | **10/10** | **PASS** | 71.62 / 84.57 |
+| qwen3.5-flash | engine-preserve | **10/10** | **10/10** | **PASS** | 72.11 / 82.90 |
+| qwen-mt-turbo (retiring baseline) | none (raw) | 9/10 | 10/10 | FAIL | 71.94 / 86.00 |
+| qwen-mt-flash | none (raw) | 2/10 | 10/10 | FAIL | 69.95 / 87.07 |
+| qwen-mt-plus | none (raw) | 1/10 | 7/10 | FAIL | 70.68 / 83.99 |
+| glm-4.7-flash (Workers AI) | engine | 0/10 | 0/10 | FAIL | 70.11 / 71.61 |
+| glm-4.7-flash (Workers AI) | engine-preserve | 0/10 | 0/10 | FAIL | 63.74 / 57.28 |
+
+Full per-segment failure detail: [results/token-survival.md](../results/token-survival.md).
+
+- **The failure modes are graded, not binary.** glm strips the private-use wrappers and
+  literalises the index ("Laporan tahunan **10** ditulis oleh **5**…", even translating
+  index 0 as the word "nol"); qwen-mt-flash/plus reduce sentence-adjacent tokens to bare
+  numbers with punctuation ("**1.** Leading the community's weekly meeting…") while
+  occasionally keeping mid-sentence tokens; qwen-mt-turbo failed exactly one segment —
+  a **sentence-initial** masked organisation name rendered as "0 opens registration…" —
+  and passed everything else.
+- **"Production-verified" is not adversarially safe.** The turbo baseline that handled
+  two full articles clean still failed the probe set's sentence-initial org token.
+  Production evidently never hit that placement, or it is stochastic. The survival
+  assertion and review flags must stay regardless of which model wins — the benchmark
+  and the assertion layer are the safety net, not the model choice.
+- **The direction asymmetry is real**: qwen-mt-flash carried every token en→id (10/10)
+  and lost almost all of them id→en (2/10). The production pipeline runs id→en.
+- **The preservation instruction works, where the model can follow it**: all three
+  raisable chat models went to perfect 10/10 in both directions with `engine-preserve`.
+  glm-4.7-flash failed 0/10 **with the same instruction** — it cannot carry masked
+  segments at all.
+
+**Rewritten recommendation** (supersedes the plain-text recommendation of 2026-09-28;
+a successor must pass token survival AND quality AND the 5-minute cron budget):
+
+- **No qwen-mt survivor is both safe and raisable.** qwen-mt-flash (the earlier pick)
+  and qwen-mt-plus fail token survival outright; qwen-mt-turbo, the model production
+  trusts, is itself not perfect on adversarial placements and retires 2026-10-10;
+  qwen-mt-lite passes cleanly raw but inherits the family's non-raisable 60 RPM / 100K
+  TPM caps and its single-vendor retirement risk (the family is demonstrably being
+  pruned).
+- **Winner: qwen-flash with the `engine-preserve` instruction as the production
+  default.** Perfect 10/10 token survival in both directions, turbo-level plain-text
+  quality (id→en 71.67 vs turbo 71.94; BLEU 48.81, second only to qwen3.5-flash's
+  48.92), 0.46–0.52 s/segment (a
+  300-segment entry translates in ~2.5 minutes, inside the cron window), and the only
+  quality survivor whose rate limits the console can raise. Cost of adoption: switch the
+  provider from the qwen-mt `translation_options` shape to chat completions and append
+  the one-sentence preservation clause to the engine system instruction — small, tested
+  changes to the production translator.
+- **Ranked behind it:** qwen3.6-flash + instruction (best survivor en→id at 84.57 and
+  perfect survival, but 6–8 s/segment of thinking latency blows the cron budget on
+  entry-sized batches) → qwen3.5-flash + instruction (perfect survival, best survivor
+  id→en at 72.11, but 8–17 s/segment plus mid-sweep socket stalls — worst reliability)
+  → qwen-mt-lite raw (the zero-protocol-change drop-in: passes 10/10 without any prompt
+  change at 1.1 s/segment, id→en 71.26; take it if the provider switch must wait, and
+  accept the non-raisable caps).
+- **The failover path needs rework: glm-4.7-flash destroys masked names** (0/10 with
+  and without the instruction). During a QwenCloud outage the current fallback would
+  flag every masked segment for review — availability with unusable output. Point the
+  outage failover at a token-safe provider instead (the qwen-flash chat path, or
+  re-test future fallback candidates on `data/masked.jsonl` first), and keep the
+  survival assertion + review flags as the permanent safety net. If a future sweep
+  produces no token-safe candidate at all, the recommendation is: stay on
+  qwen-mt-turbo until retirement, then fail over to the best survivor with review
+  flags on every segment, or switch vendors.
 
 ### Caveats on these numbers
 
