@@ -34,4 +34,6 @@ This repo already has: the Qwen-MT adapter (`translation_options` on the QwenClo
 
 ## deviation log
 
-- (filled during execution)
+- (resumed 2026-09-29 after an interrupted execution) The earlier session completed only the id→en half (qwen-mt-flash/turbo re-runs, qwen-flash, qwen3.6-flash); this session ran the missing en→id half (qwen-flash, qwen3.6-flash, qwen3.5-flash, qwen-mt-flash re-run, glm-4.7-flash) plus the two id→en runs the interruption dropped entirely (qwen3.5-flash, glm-4.7-flash).
+- `_post_chat_retry` (eval/backends.py) originally retried only HTTP 429/5xx; a qwen3.5-flash request stalled past the 300 s socket timeout mid-sweep and crashed the run with a raw TimeoutError. The helper now retries transient read timeouts / URLErrors with the same backoff (it caught two more stalls in the completed qwen3.5-flash id→en sweep).
+- No 429s were hit by any sweep at sequential per-segment pacing; the rate-limit behaviour finding is therefore "caps never approached", not "429s observed".

@@ -21,7 +21,7 @@ Everything below was checked against the live model hubs
 | Need register/glossary/format control in one pass (subtitles, legal, redaction) | **Hy-MT2-7B** or **TranslateGemma 12B** with instructions | Both follow translation instructions (keep terms untranslated, SRT format, style) |
 | Multiple local languages (Javanese, Sundanese) as well | **SEA-LION** (`Gemma-SEA-LION-v3-9B-IT`) or **Sahabat-AI** (`llama3-8b-cpt-sahabatai-v1`) | SEA-tuned LLMs, Indonesian + regional languages |
 | Deploying on Cloudflare Workers AI | **m2m100-1.2b** — the only id⇄en translation model there | Measured chrF 66.90 id→en (above local 4B tier), but 71.49 en→id (well below); segment first (it drops multi-sentence input) |
-| Hosted, best quality for en→id | **qwen-mt-flash / -turbo** (QwenCloud MaaS) | Measured chrF **87.26** / 86.00 — 6+ points above everything else; id→en 69.9–71.8; fastest hosted latency |
+| Hosted translation on QwenCloud MaaS | **qwen-mt-flash** (`qwen-mt-turbo` retires 2026-10-10) | Measured chrF **87.07** en→id — best measured anywhere; id→en 69.95 with turbo-identical entity behaviour; see [the retirement sweep](#the-qwen-mt-turbo-retirement-and-the-replacement-sweep-2026-09-28) |
 | Hosted quality reference / fastest integration | **Kagi Translate** (via bevry-vibes/kagi-translate-client) | Best measured id→en (chrF **74.82**); ties TranslateGemma 4B on en→id; session-cookie client, no public API used |
 
 Rule of thumb: **specialised MT models (TranslateGemma, Hy-MT2) beat general local LLMs of the same size for Indonesian**, and a 4B specialised model is often better than a 12B general one.
@@ -222,6 +222,14 @@ The deployment question expanded to QwenCloud (`maas.qwencloudapi.com`, OpenAI-c
   `translation_options: {source_lang: "auto", target_lang: "English"}` and the raw source
   text as the message — no prompt, no thinking, and (unlike Workers AI's m2m100)
   multi-sentence input comes back whole. All four tiers are benchmarked below.
+- **Retirement (added 2026-09-28):** QwenCloud retires **`qwen-mt-turbo` on 2026-10-10**
+  (stated twice on its model page). Its limits — 60 requests/min, 100K tokens/min — are
+  **not raisable**, and the console rate-limit-raise list covers chat models only
+  (`qwen3.6-plus`, `qwen3.6-flash`, `qwen3.5-flash`, `qwen3.5-plus`, `qwen-flash`, …);
+  no `qwen-mt` model is on it. The replacement benchmark and the updated recommendation
+  are in [the retirement sweep](#the-qwen-mt-turbo-retirement-and-the-replacement-sweep-2026-09-28):
+  **qwen-mt-flash** is the production default, `qwen-flash` the raisable-rate-limit
+  alternative, glm-4.7-flash stays the outage fallback.
 
 ## 5. Runtimes: how to actually run these locally
 
@@ -345,10 +353,118 @@ The full per-segment source/reference/hypothesis dumps are in `results/*.json`, 
 
 - Hosted rows were measured on 2026-09-23 with the same test set and the same sacrebleu metric backend as the local rows, so the tables are directly comparable.
 - **Kagi Translate wins id→en outright** (chrF 74.82, +10 over the local 4B tier) and ties TranslateGemma 4B on en→id (80.53 vs 80.75 — within 14-segment noise); its BLEU lead on en→id (69.17 vs 62.83) says it matches the reference wording more often. Weakest en→id categories: legal clauses (68.4) and short UI strings (69.9).
-- **The Qwen-MT family takes en→id by a wide margin**: qwen-mt-flash scores chrF 87.26 (+6.5 over the previous best) at 0.33 s/sentence — the best quality AND latency of any hosted row — with qwen-mt-turbo close behind (86.00, and the best BLEU at 77.38). On id→en the four tiers cluster at 69.9–71.8, above Workers AI m2m100 and the local tier, though still under Kagi. Translations come back fluent and complete: the multi-sentence greeting that m2m100 mangled ("Semoga sehat selalu" dropped, chrF 31.3) translates in full (greeting-register chrF 93.2). Weak spots mirror the other systems: idioms (24–33) and short Tatoeba everyday lines.
+- **The Qwen-MT family takes en→id by a wide margin**: qwen-mt-flash scores chrF 87.26 (+6.5 over the previous best) at 0.33 s/sentence — the best quality AND latency of any hosted row — with qwen-mt-turbo close behind (86.00, and the best BLEU at 77.38; it retires 2026-10-10 — see the 2026-09-28 sweep below). On id→en the four tiers cluster at 69.9–71.8, above Workers AI m2m100 and the local tier, though still under Kagi. Translations come back fluent and complete: the multi-sentence greeting that m2m100 mangled ("Semoga sehat selalu" dropped, chrF 31.3) translates in full (greeting-register chrF 93.2). Weak spots mirror the other systems: idioms (24–33) and short Tatoeba everyday lines.
 - **Workers AI m2m100 beats the local 4B tier on id→en aggregate** (66.90 vs 64.87) despite dropping multi-sentence content — the aggregate is dominated by single-sentence FLORES/Tatoeba segments. On en→id it is 9 chrF behind (71.49 vs 80.75). For a Cloudflare deployment: usable for pre-segmented id→en volume, not competitive en→id.
 - **Python vs Deno client parity is exact**: identical scores on every run (deterministic services, same metric formulas). Latency differs by client machinery — the Deno Kagi path is ~6× faster per sentence than the Python path (0.26 vs 1.54 s) because the Python runtime pays a `uv` process start per sentence; Deno edges the Workers AI rows by ~0.2 s/sentence.
 - **Timing semantics**: hosted rows time one network round trip per sentence against warm models; local rows time CPU inference after a warm-up. Do not read the s/segment column as a like-for-like speed ranking across the hosted/local boundary.
+
+### The qwen-mt-turbo retirement and the replacement sweep (2026-09-28)
+
+QwenCloud retires **qwen-mt-turbo** on **2026-10-10** (stated twice on its model page).
+Its rate limits — 60 requests/min, 100K tokens/min — are **not raisable**, and the
+console raise list covers chat models only (`qwen3.6-plus`, `qwen3.6-flash`,
+`qwen3.5-flash`, `qwen3.5-plus`, `qwen-flash`, …); no `qwen-mt` model is on it. Since
+the retiring model is the primary translator of a production site (patipeaceplace,
+id→en primary, short web segments, names must survive, 5-minute cron budget), the
+replacement candidates were benchmarked in one session on the same test set and metric,
+both directions:
+
+- **qwen-mt-flash** (the surviving `qwen-mt` tier) and **qwen-mt-turbo** (retiring
+  baseline) re-run through `translation_options` — the re-runs double as a drift control.
+- The console-raisable chat models **qwen-flash**, **qwen3.6-flash**, **qwen3.5-flash**
+  through the OpenAI-compatible endpoint with the production **`engine` prompt**
+  (a translation-engine system instruction plus the raw source text — the exact request
+  shape of patipeaceplace's `glmTranslate`).
+- The production Workers AI fallback **glm-4.7-flash** through the same `engine` prompt
+  (`WorkersAiChatBackend`, production request shape).
+
+**id → en (78 segments)**
+
+| model | prompt | chrF | chrF++ | BLEU | s/segment | rate limits |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| Kagi Translate (2026-09-23 reference) | — | **74.82** | **73.20** | 53.12 | 0.26–1.54 | n/a (web session) |
+| qwen3.5-flash | engine | **72.11** | 70.58 | **48.92** | 16.88 | raisable |
+| qwen-mt-turbo (retiring baseline) | — | 71.94 | 70.17 | 46.68 | 0.78 | 60 RPM / 100K TPM; retires 2026-10-10 |
+| qwen-flash | engine | 71.67 | 70.13 | 48.81 | **0.46** | raisable |
+| qwen3.6-flash | engine | 71.62 | 69.79 | 46.59 | 7.58 | raisable |
+| glm-4.7-flash (Workers AI) | engine | 70.11 | 68.52 | 45.13 | 17.10 | Workers AI neurons |
+| qwen-mt-flash | — | 69.95 | 68.05 | 43.56 | 0.87 | 60 RPM / 100K TPM, not raisable |
+
+**en → id (14 segments)**
+
+| model | prompt | chrF | chrF++ | BLEU | s/segment |
+| --- | --- | ---: | ---: | ---: | ---: |
+| qwen-mt-flash | — | **87.07** | **86.50** | 73.92 | **0.35** |
+| qwen-mt-turbo (retiring baseline) | — | 86.00 | 85.65 | **77.38** | 0.31 |
+| qwen3.6-flash | engine | 84.57 | 84.16 | 72.39 | 6.99 |
+| qwen3.5-flash | engine | 82.90 | 81.65 | 62.07 | 8.00 |
+| qwen-flash | engine | 82.06 | 81.49 | 69.51 | 0.52 |
+| glm-4.7-flash (Workers AI) | engine | 71.61 | 70.09 | 50.34 | 13.88 |
+
+Drift check: qwen-mt-turbo id→en 71.77 (2026-09-24) → 71.94; qwen-mt-flash 69.90 → 69.95;
+qwen-mt-flash en→id 87.26 → 87.07. Scores are stable across five days.
+
+Findings:
+
+- **No single successor dominates both directions.** qwen-mt-flash keeps the en→id
+  crown (87.07) but is the weakest `qwen-mt` tier on id→en (69.95, −2.0 vs the retiring
+  turbo). The chat models tie or beat turbo on id→en (qwen-flash 71.67, qwen3.5-flash
+  72.11 — the best Qwen number measured) but give up 3–5 chrF on en→id. The 78-vs-14
+  segment asymmetry makes id→en the statistically stronger comparison — conveniently
+  also the production direction (the site translates its Indonesian content into
+  English).
+- **Chat models are MT-class on id→en now.** With the `engine` prompt the best of them
+  land within 0.3 chrF of the retiring dedicated model and above every non-QwenCloud
+  option measured; the dedicated `qwen-mt` family keeps a real en→id edge.
+- **Entities and do-not-translate survive everywhere that matters.** id→en
+  do-not-translate probes: qwen-flash 100.0 (both), qwen3.6-flash 89.37, qwen3.5-flash
+  89.37, both qwen-mt models 87.29 — in every case the entity itself
+  (`support@example.com`, `Settings > Security`) survived intact; the chrF spread comes
+  from phrasing around it ("by tomorrow at the latest" vs "no later than tomorrow").
+  acronym-entity (Kemenkeu → Ministry of Finance): qwen-mt 92.54, qwen3.5/3.6-flash
+  87.98, qwen-flash 83.0. On en→id the acronym probe (GDP → PDB) is 100.0 for every
+  Qwen model — only glm-4.7-flash left it as "GDP" (88.94). No name butchering observed
+  in any candidate's entity probes.
+- **Thinking latency is the chat models' hidden cost.** qwen3.6-flash and
+  qwen3.5-flash spend 7–17 s/segment on reasoning tokens versus 0.3–0.9 for the
+  `qwen-mt` family and qwen-flash; a 200-segment entry would take 25–55 minutes through
+  them — far outside the production 5-minute cron budget, and billed tokens all the
+  same. glm-4.7-flash is similarly slow (13.9–17.1 s/s) and collapses en→id (71.61 —
+  level with Workers AI m2m100, 10+ behind the Qwen tier, with real mistranslations:
+  *utang* "debt" → "knots"). It stays viable only as an outage fallback, never a
+  primary.
+- **Reliability during the sweep:** zero 429s at sequential per-segment pacing (the
+  harness retries 429/5xx honouring `Retry-After`, excluded from measured latency).
+  qwen3.5-flash stalled twice past the 300 s socket timeout mid-sweep — the harness now
+  retries transient timeouts so the run survives, but an unattended cron would have
+  hung twice for five minutes; a reliability strike against it.
+
+Recommendation (for the production site; grounded in the tables above):
+
+- **Default: qwen-mt-flash.** Best en→id measured anywhere (87.07); id→en within 2.0
+  chrF of the retiring turbo and above every non-QwenCloud option; entity behaviour
+  identical to turbo's (do-not-translate 87.29, acronym-entity 92.54); zero integration
+  change (same `translation_options` contract); 0.35–0.87 s/segment keeps even a
+  300-segment entry inside the cron window. The non-raisable 60 RPM / 100K TPM caps sit
+  one to two orders of magnitude above the site's sequential per-segment traffic — only
+  a whole-corpus rebuild would press them (split it across runs if that ever happens).
+  Cost at this volume is negligible: the entire ~500-request sweep cost cents on
+  QwenCloud, and the site's steady-state traffic (a handful of content entries per
+  week) is far below that.
+- **Raisable alternative: qwen-flash.** Statistically tied with the retiring turbo on
+  id→en (71.67 vs 71.94; BLEU 48.81 vs 46.68), the only perfect do-not-translate score
+  (100.0), the fastest model of the sweep (0.46 s/s), and the one candidate whose rate
+  limits the console can actually raise. Trade-off: en→id 82.06 (−5.0 vs qwen-mt-flash)
+  and acronym-entity 83.0 (weakest of the Qwen set). Switch to it — or add it as a
+  second provider — if bulk re-translation volume ever meets the qwen-mt caps.
+- **Fallback: keep glm-4.7-flash as-is.** Maker-diverse and independent of QwenCloud,
+  which is its entire job; the numbers confirm it should never be the primary (en→id at
+  m2m100 level, 13.9–17.1 s/segment), but the queue drains from it only during an
+  outage.
+- **Not primaries: qwen3.6-flash / qwen3.5-flash.** Competitive quality (qwen3.5-flash
+  is nominally the best Qwen id→en at 72.11), but thinking latency (7–17 s/s) and the
+  qwen3.5 stalls blow the cron budget. Revisit if a non-thinking variant of that
+  quality tier appears.
 
 ### Caveats on these numbers
 
