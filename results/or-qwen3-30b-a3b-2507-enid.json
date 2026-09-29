@@ -1,0 +1,150 @@
+{
+  "label": "or-qwen3-30b-a3b-2507-enid",
+  "backend": "openai",
+  "model": "qwen/qwen3-30b-a3b-instruct-2507",
+  "prompt_style": "engine",
+  "src": "en",
+  "tgt": "id",
+  "testset": "testset.jsonl",
+  "pairs": 14,
+  "metrics": {
+    "bleu": 65.22,
+    "chrf": 79.87,
+    "chrfpp": 78.94
+  },
+  "metric_backend": "sacrebleu",
+  "exact_match_rate": 7.14,
+  "seconds_total": 33.54,
+  "seconds_per_sentence": 2.396,
+  "chrF_by_category": {
+    "acronym": 100.0,
+    "idiom": 61.75,
+    "legal": 81.01,
+    "long-conditional": 85.6,
+    "marketing": 73.26,
+    "medical-instruction": 88.42,
+    "numbers-currency": 85.57,
+    "passive": 77.08,
+    "register-formal": 76.46,
+    "relative-clause": 86.27,
+    "second-person": 74.61,
+    "simple": 84.82,
+    "software-term": 89.69,
+    "ui-short": 69.89
+  },
+  "timestamp": "2026-09-29T04:35:12+00:00",
+  "samples": [
+    {
+      "id": "en-id-001",
+      "category": "simple",
+      "source": "The meeting will start at nine in the morning.",
+      "reference": "Rapat akan dimulai pukul sembilan pagi.",
+      "hypothesis": "Pertemuan akan dimulai pukul sembilan pagi.",
+      "chrf": 84.82
+    },
+    {
+      "id": "en-id-002",
+      "category": "register-formal",
+      "source": "Please submit your documents before Friday.",
+      "reference": "Mohon serahkan dokumen Anda sebelum hari Jumat.",
+      "hypothesis": "Harap mengumpulkan dokumen Anda sebelum hari Jumat.",
+      "chrf": 76.46
+    },
+    {
+      "id": "en-id-003",
+      "category": "software-term",
+      "source": "This browser is not supported on your device.",
+      "reference": "Peramban ini tidak didukung di perangkat Anda.",
+      "hypothesis": "Peramban ini tidak didukung pada perangkat Anda.",
+      "chrf": 89.69
+    },
+    {
+      "id": "en-id-004",
+      "category": "numbers-currency",
+      "source": "The total cost is $1,250.50, including tax.",
+      "reference": "Total biayanya adalah $1.250,50, termasuk pajak.",
+      "hypothesis": "Total biayanya adalah 1.250,50 dolar, termasuk pajak.",
+      "chrf": 85.57
+    },
+    {
+      "id": "en-id-005",
+      "category": "idiom",
+      "source": "It is raining cats and dogs outside.",
+      "reference": "Di luar sedang hujan deras.",
+      "hypothesis": "Hujan deras di luar.",
+      "chrf": 61.75
+    },
+    {
+      "id": "en-id-006",
+      "category": "legal",
+      "source": "Neither party may assign this agreement without prior written consent.",
+      "reference": "Tidak ada pihak yang boleh mengalihkan perjanjian ini tanpa persetujuan tertulis terlebih dahulu.",
+      "hypothesis": "Kedua belah pihak tidak boleh menugaskan perjanjian ini tanpa persetujuan tertulis terlebih dahulu.",
+      "chrf": 81.01
+    },
+    {
+      "id": "en-id-007",
+      "category": "marketing",
+      "source": "Fast, reliable, and always in sync.",
+      "reference": "Cepat, andal, dan selalu tersinkronisasi.",
+      "hypothesis": "Cepat, andal, dan selalu sinkron.",
+      "chrf": 73.26
+    },
+    {
+      "id": "en-id-008",
+      "category": "acronym",
+      "source": "GDP grew by 5.1% in the second quarter.",
+      "reference": "PDB tumbuh sebesar 5,1% pada kuartal kedua.",
+      "hypothesis": "PDB tumbuh sebesar 5,1% pada kuartal kedua.",
+      "chrf": 100.0
+    },
+    {
+      "id": "en-id-009",
+      "category": "long-conditional",
+      "source": "If the payment is not received within 30 days, we reserve the right to suspend the account, in accordance with clause 4.2.",
+      "reference": "Jika pembayaran tidak diterima dalam waktu 30 hari, kami berhak menangguhkan akun tersebut, sesuai dengan pasal 4.2.",
+      "hypothesis": "Jika pembayaran tidak diterima dalam waktu 30 hari, kami berhak menangguhkan akun, sesuai dengan klausa 4.2.",
+      "chrf": 85.6
+    },
+    {
+      "id": "en-id-010",
+      "category": "passive",
+      "source": "The application must be signed by both parties.",
+      "reference": "Permohonan itu harus ditandatangani oleh kedua belah pihak.",
+      "hypothesis": "Aplikasi harus ditandatangani oleh kedua belah pihak.",
+      "chrf": 77.08
+    },
+    {
+      "id": "en-id-011",
+      "category": "second-person",
+      "source": "You should update your password immediately.",
+      "reference": "Anda sebaiknya segera memperbarui kata sandi Anda.",
+      "hypothesis": "Anda harus memperbarui kata sandi Anda segera.",
+      "chrf": 74.61
+    },
+    {
+      "id": "en-id-012",
+      "category": "ui-short",
+      "source": "Add to cart",
+      "reference": "Tambahkan ke keranjang.",
+      "hypothesis": "Tambah ke keranjang",
+      "chrf": 69.89
+    },
+    {
+      "id": "en-id-013",
+      "category": "medical-instruction",
+      "source": "Take one tablet twice a day after meals.",
+      "reference": "Minum satu tablet dua kali sehari setelah makan.",
+      "hypothesis": "Ambil satu tablet dua kali sehari setelah makan.",
+      "chrf": 88.42
+    },
+    {
+      "id": "en-id-014",
+      "category": "relative-clause",
+      "source": "The man who sold us the tickets said the train had already left.",
+      "reference": "Pria yang menjual tiket kepada kami mengatakan bahwa keretanya sudah berangkat.",
+      "hypothesis": "Pria yang menjual tiket kepada kami mengatakan kereta sudah berangkat.",
+      "chrf": 86.27
+    }
+  ]
+}
