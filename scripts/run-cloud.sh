@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run the hosted (cloud) benchmark sweeps and regenerate results/results.md.
+# Run the hosted (cloud) benchmark sweeps and refresh the results-site data.
 # Usage: scripts/run-cloud.sh [cloudflare|kagi|qwen|qwen-chat|glm|replacement|both|all] [id-en|en-id|both]
 #
 # Needs .env (gitignored) with CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID,
@@ -113,4 +113,4 @@ for ((i = 0; i < ${#DIRECTIONS[@]}; i += 2)); do
   esac
 done
 
-"$PY" eval/summarize.py
+"$PY" eval/build_site_data.py

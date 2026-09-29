@@ -1,0 +1,133 @@
+import { Badge } from '@/components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Separator } from '@/components/ui/separator'
+import { formatDateTime, heatText, renderTokens } from '@/lib/data'
+import type { RunRow, Sample } from '@/types'
+
+function SampleBlock({ sample }: { sample: Sample }) {
+  return (
+    <div className="rounded-lg border bg-card/50 p-3">
+      <div className="mb-2 flex items-center gap-2">
+        <Badge variant="outline" className="text-xs">
+          {sample.category}
+        </Badge>
+        <span className="ml-auto font-mono text-xs tabular-nums" style={{ color: heatText(sample.chrf) }}>
+          chrF {sample.chrf.toFixed(2)}
+        </span>
+      </div>
+      <dl className="space-y-1.5 text-sm">
+        <div className="grid grid-cols-[5.5rem_1fr] gap-2">
+          <dt className="pt-px text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+            Source
+          </dt>
+          <dd className="text-foreground/90">{renderTokens(sample.source)}</dd>
+        </div>
+        <div className="grid grid-cols-[5.5rem_1fr] gap-2">
+          <dt className="pt-px text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+            Reference
+          </dt>
+          <dd className="text-foreground/90">{renderTokens(sample.reference)}</dd>
+        </div>
+        <div className="grid grid-cols-[5.5rem_1fr] gap-2">
+          <dt className="pt-px text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+            Hypothesis
+          </dt>
+          <dd className="text-foreground">{renderTokens(sample.hypothesis)}</dd>
+        </div>
+      </dl>
+    </div>
+  )
+}
+
+function Meta({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{label}</dt>
+      <dd className="font-mono text-xs">{value}</dd>
+    </div>
+  )
+}
+
+export function SamplesDialog({
+  run,
+  open,
+  onOpenChange,
+}: {
+  run: RunRow | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  if (!run) return null
+  const ranked = [...run.samples].sort((a, b) => b.chrf - a.chrf)
+  const best = ranked.slice(0, 5)
+  const worst = ranked.slice(-5).reverse()
+  const split = run.samples_capped && run.samples.length >= 10
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="font-mono text-base">{run.model}</DialogTitle>
+          <DialogDescription>
+            {run.label}.json — click outside or press escape to close
+          </DialogDescription>
+        </DialogHeader>
+
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-4">
+          <Meta label="Provider" value={run.provider} />
+          <Meta label="Prompt style" value={run.prompt_style} />
+          <Meta label="Pairs" value={String(run.pairs)} />
+          <Meta label="chrF / ++ / BLEU" value={`${run.metrics.chrf} / ${run.metrics.chrfpp} / ${run.metrics.bleu}`} />
+          <Meta label="Metric backend" value={run.metric_backend} />
+          <Meta label="Exact match" value={`${run.exact_match_rate ?? '—'}%`} />
+          <Meta label="s/sentence" value={run.seconds_per_sentence?.toFixed(3) ?? '—'} />
+          <Meta label="Timestamp" value={run.timestamp ? formatDateTime(run.timestamp) : '—'} />
+        </dl>
+
+        <Separator />
+
+        {split ? (
+          <div className="space-y-5">
+            <section>
+              <h3 className="mb-2 text-sm font-semibold text-emerald-500 dark:text-emerald-400">
+                Best 5 samples (highest per-sentence chrF)
+              </h3>
+              <div className="space-y-3">
+                {best.map((sample) => (
+                  <SampleBlock key={sample.id} sample={sample} />
+                ))}
+              </div>
+            </section>
+            <section>
+              <h3 className="mb-2 text-sm font-semibold text-red-500 dark:text-red-400">
+                Worst 5 samples (lowest per-sentence chrF)
+              </h3>
+              <div className="space-y-3">
+                {worst.map((sample) => (
+                  <SampleBlock key={sample.id} sample={sample} />
+                ))}
+              </div>
+            </section>
+          </div>
+        ) : (
+          <section>
+            <h3 className="mb-2 text-sm font-semibold">
+              All {run.samples.length} samples (sorted by per-sentence chrF)
+            </h3>
+            <div className="space-y-3">
+              {ranked.map((sample) => (
+                <SampleBlock key={sample.id} sample={sample} />
+              ))}
+            </div>
+          </section>
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}

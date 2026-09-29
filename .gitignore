@@ -67,6 +67,9 @@ data/*.zip
 # this project: reflow staging (bevry-vibes/reflow)
 .temp-reflow/
 
+# this project: benchmark-results site (site/); build with npm run build in site/
+site/dist/
+
 # this project: docs/ is source content here, not generated output
 !docs/
 !docs/**

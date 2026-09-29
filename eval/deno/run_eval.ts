@@ -3,7 +3,7 @@
  *
  * Same testset, same local-metric formulas (./metrics.ts), same results JSON
  * schema and one-benchmark-at-a-time run lock as eval/run_eval.py, so
- * eval/summarize.py renders both clients into one results/results.md.
+ * eval/build_site_data.py feeds both clients into one results site.
  *
  * Usage:
  *   deno run --allow-net --allow-env --allow-read --allow-write eval/deno/run_eval.ts \
@@ -21,7 +21,7 @@ import { exactMatchRate, perSentenceChrf, scoreAll } from "./metrics.ts";
 // Corpus-level scoring mirrors metrics.py exactly: sacrebleu when the system
 // python3 has it (one subprocess per run — scoring only, the client stays Deno),
 // otherwise the bundled local formulas. This keeps the Deno rows directly
-// comparable with the Python rows in results/results.md.
+// comparable with the Python rows in the results site data.
 const SACREBLEU_SNIPPET = [
   "import json, sys, sacrebleu",
   "h, r = json.load(sys.stdin)",
@@ -244,7 +244,7 @@ async function main() {
         console.log(`            hyp: ${JSON.stringify(out[i].slice(0, 70))}`);
       });
     console.log(`wrote ${outPath}`);
-    console.log("run `python3 eval/summarize.py` to regenerate results/results.md");
+    console.log("run `eval/build_site_data.py` to refresh the results site data");
   } finally {
     releaseLock();
   }

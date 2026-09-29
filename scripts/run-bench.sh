@@ -57,6 +57,6 @@ run_direction() {
 if [[ "$DIRECTIONS" == "id-en" || "$DIRECTIONS" == "both" ]]; then run_direction id en; fi
 if [[ "$DIRECTIONS" == "en-id" || "$DIRECTIONS" == "both" ]]; then run_direction en id; fi
 
-python3 eval/summarize.py
+python3 eval/build_site_data.py
 echo
-echo "see results/results.md"
+echo "see the results site (bash scripts/deploy-site.sh) or results/*.json"
