@@ -8,6 +8,7 @@ const FONT_FAMILY = "'DejaVu Sans Mono', ui-monospace, monospace";
 const DIM = '\x1b[90m';
 const GREEN = '\x1b[32m';
 const YELLOW = '\x1b[33m';
+const RED = '\x1b[31m';
 const RESET = '\x1b[0m';
 
 interface RefreshStatus {
@@ -15,6 +16,8 @@ interface RefreshStatus {
   status: 'running' | 'complete' | 'failed';
   started_at: string;
   updated_at: string;
+  started_at_ms?: number;
+  updated_at_ms?: number;
   done: number;
   total: number;
   current?: string;
@@ -45,7 +48,10 @@ export function RefreshTerminal() {
     const write = (text: string) => term?.write(text);
 
     const render = (status: RefreshStatus) => {
-      const stamp = (status.updated_at ?? '').replace('T', ' ').slice(0, 19);
+      // timestamps render in the viewer's own timezone, from epoch millis
+      const updatedMs = status.updated_at_ms ?? Date.parse(status.updated_at);
+      const startedMs = status.started_at_ms ?? Date.parse(status.started_at);
+      const stamp = new Date(updatedMs).toLocaleTimeString();
       const bar = (done: number, total: number) => {
         const width = 24;
         const filled = total > 0 ? Math.round((done / total) * width) : 0;
@@ -53,32 +59,35 @@ export function RefreshTerminal() {
       };
       const eta = (done: number, total: number) => {
         if (status.status !== 'running' || done === 0 || done >= total) return null;
-        const started = Date.parse(status.started_at);
-        const updated = Date.parse(status.updated_at);
-        const perLeg = (updated - started) / done;
-        const minutes = Math.round(((total - done) * perLeg) / 60000);
-        return `ETA ~${minutes}m`;
+        const perLeg = (updatedMs - startedMs) / done;
+        const remainingMs = (total - done) * perLeg;
+        const minutes = Math.round(remainingMs / 60000);
+        const completionClock = new Date(Date.now() + remainingMs).toLocaleTimeString();
+        return `ETA ~${minutes}m · completes ~${completionClock}`;
       };
       const icon = status.status === 'complete' ? '✓' : status.status === 'failed' ? '✗' : '»';
-      const colour = status.status === 'complete' ? GREEN : status.status === 'failed' ? '\x1b[31m' : YELLOW;
-      const line =
-        `${DIM}[${stamp}]${RESET} ${colour}${icon}${RESET} ` +
-        `${status.task}: ${status.done}/${status.total} ${bar(status.done, status.total)} ` +
-        `${Math.round((status.done / Math.max(status.total, 1)) * 100)}%` +
-        (status.current ? ` — ${status.current}` : '') +
-        (eta(status.done, status.total) ? ` · ${YELLOW}${eta(status.done, status.total)}${RESET}` : '') +
-        (status.note ? `\n  ${DIM}${status.note}${RESET}` : '') +
-        '\r\n';
-      if (line === lastWritten.current) return;
+      const colour = status.status === 'complete' ? GREEN : status.status === 'failed' ? RED : YELLOW;
+      // dedupe on substance: the ETA completion clock shifts every poll and
+      // must not spam the terminal — only genuine progress writes a line
+      const dedupeKey = `${status.status}|${status.done}|${status.total}|${status.current ?? ''}`;
+      if (dedupeKey === lastWritten.current) return;
       const first = lastWritten.current === '';
-      lastWritten.current = line;
+      lastWritten.current = dedupeKey;
       if (first) {
         write(
           `${DIM}translation-comparison — measurement refresh monitor${RESET}\r\n` +
             `${DIM}(fed by scripts/lib.sh progress_emit · polls every 4s)${RESET}\r\n\r\n`,
         );
       }
-      write(line);
+      write(
+        `${DIM}[${stamp}]${RESET} ${colour}${icon}${RESET} ` +
+          `${status.task}: ${status.done}/${status.total} ${bar(status.done, status.total)} ` +
+          `${Math.round((status.done / Math.max(status.total, 1)) * 100)}%` +
+          (status.current ? ` — ${status.current}` : '') +
+          (eta(status.done, status.total) ? ` · ${YELLOW}${eta(status.done, status.total)}${RESET}` : '') +
+          (status.note ? `\n  ${DIM}${status.note}${RESET}` : '') +
+          '\r\n',
+      );
     };
 
     const pollOnce = async () => {

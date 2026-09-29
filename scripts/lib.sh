@@ -20,11 +20,18 @@ progress_emit() {
   mkdir -p "$dir"
   deno eval '
   const [task, status, done, total, current, note, startedPath] = Deno.args;
-  const now = new Date().toISOString().slice(0, 19) + "+00:00";
-  const startedFile = startedPath;
-  let started_at = now;
-  try { started_at = Deno.readTextFileSync(startedFile).trim() || now; } catch { Deno.writeTextFileSync(startedFile, now); }
-  const out = { task, status, started_at, updated_at: now, done: Number(done), total: Number(total), ...(current ? { current } : {}), ...(note ? { note } : {}) };
+  const nowMs = Date.now();
+  let startedMs = nowMs;
+  try { startedMs = Number(Deno.readTextFileSync(startedPath).trim()) || nowMs; } catch { Deno.writeTextFileSync(startedPath, String(nowMs)); }
+  const out = {
+    task, status,
+    started_at: new Date(startedMs).toISOString(),
+    updated_at: new Date(nowMs).toISOString(),
+    started_at_ms: startedMs,
+    updated_at_ms: nowMs,
+    done: Number(done), total: Number(total),
+    ...(current ? { current } : {}), ...(note ? { note } : {}),
+  };
   await Deno.writeTextFile(Deno.args[7], JSON.stringify(out, null, 1) + "\n");
   ' "$task" "$status" "$done" "$total" "$current" "$note" "$ROOT/.refresh-started-$task" "$dir/refresh-status.json"
 }
