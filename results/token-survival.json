@@ -1,0 +1,141 @@
+{
+ "runs": [
+  {
+   "label": "glm-4.7-flash-masked-enid",
+   "file": "glm-4.7-flash-masked-enid.json",
+   "model": "@cf/zai-org/glm-4.7-flash",
+   "prompt_style": "engine-preserve",
+   "backend": "cloudflare-chat",
+   "direction": "en->id",
+   "passed": 10,
+   "total": 10,
+   "verdict": "PASS",
+   "restored_chrf": 78.54,
+   "restored_chrfpp": 77.1,
+   "restored_bleu": 49.27,
+   "failures": [],
+   "timestamp": "2026-09-29T16:34:41+00:00"
+  },
+  {
+   "label": "glm-5.3-flash-masked-enid",
+   "file": "glm-5.3-flash-masked-enid.json",
+   "model": "@cf/zai-org/glm-5.3-flash",
+   "prompt_style": "engine-preserve",
+   "backend": "cloudflare-chat",
+   "direction": "en->id",
+   "passed": 10,
+   "total": 10,
+   "verdict": "PASS",
+   "restored_chrf": 87.13,
+   "restored_chrfpp": 85.8,
+   "restored_bleu": 67.96,
+   "failures": [],
+   "timestamp": "2026-09-29T16:37:40+00:00"
+  },
+  {
+   "label": "ds-deepseek-flash-masked-enid",
+   "file": "ds-deepseek-flash-masked-enid.json",
+   "model": "deepseek-flash",
+   "prompt_style": "engine-preserve",
+   "backend": "openai",
+   "direction": "en->id",
+   "passed": 10,
+   "total": 10,
+   "verdict": "PASS",
+   "restored_chrf": 88.66,
+   "restored_chrfpp": 88.22,
+   "restored_bleu": 74.78,
+   "failures": [],
+   "timestamp": "2026-09-29T16:37:55+00:00"
+  },
+  {
+   "label": "ds-deepseek-v4-pro-masked-enid",
+   "file": "ds-deepseek-v4-pro-masked-enid.json",
+   "model": "deepseek-v4-pro",
+   "prompt_style": "engine-preserve",
+   "backend": "openai",
+   "direction": "en->id",
+   "passed": 10,
+   "total": 10,
+   "verdict": "PASS",
+   "restored_chrf": 88.34,
+   "restored_chrfpp": 87.85,
+   "restored_bleu": 72.93,
+   "failures": [],
+   "timestamp": "2026-09-29T16:38:15+00:00"
+  },
+  {
+   "label": "glm-5.3-flash-masked-iden",
+   "file": "glm-5.3-flash-masked-iden.json",
+   "model": "@cf/zai-org/glm-5.3-flash",
+   "prompt_style": "engine-preserve",
+   "backend": "cloudflare-chat",
+   "direction": "id->en",
+   "passed": 10,
+   "total": 10,
+   "verdict": "PASS",
+   "restored_chrf": 85.8,
+   "restored_chrfpp": 84.38,
+   "restored_bleu": 65.7,
+   "failures": [],
+   "timestamp": "2026-09-29T16:35:55+00:00"
+  },
+  {
+   "label": "ds-deepseek-flash-masked-iden",
+   "file": "ds-deepseek-flash-masked-iden.json",
+   "model": "deepseek-flash",
+   "prompt_style": "engine-preserve",
+   "backend": "openai",
+   "direction": "id->en",
+   "passed": 10,
+   "total": 10,
+   "verdict": "PASS",
+   "restored_chrf": 83.06,
+   "restored_chrfpp": 81.71,
+   "restored_bleu": 62.48,
+   "failures": [],
+   "timestamp": "2026-09-29T16:37:47+00:00"
+  },
+  {
+   "label": "ds-deepseek-v4-pro-masked-iden",
+   "file": "ds-deepseek-v4-pro-masked-iden.json",
+   "model": "deepseek-v4-pro",
+   "prompt_style": "engine-preserve",
+   "backend": "openai",
+   "direction": "id->en",
+   "passed": 10,
+   "total": 10,
+   "verdict": "PASS",
+   "restored_chrf": 83.71,
+   "restored_chrfpp": 81.77,
+   "restored_bleu": 60.3,
+   "failures": [],
+   "timestamp": "2026-09-29T16:38:04+00:00"
+  },
+  {
+   "label": "glm-4.7-flash-masked-iden",
+   "file": "glm-4.7-flash-masked-iden.json",
+   "model": "@cf/zai-org/glm-4.7-flash",
+   "prompt_style": "engine-preserve",
+   "backend": "cloudflare-chat",
+   "direction": "id->en",
+   "passed": 9,
+   "total": 10,
+   "verdict": "FAIL",
+   "restored_chrf": 81.33,
+   "restored_chrfpp": 79.27,
+   "restored_bleu": 58.08,
+   "failures": [
+    {
+     "id": "masked-iden-06",
+     "failures": [
+      "missing token [[1]] (Petrus): expected 1, found 0",
+      "name did not survive restoration: \"Petrus\" expected 1, restored text has 0"
+     ],
+     "hypothesis": "and [[2]] will represent [[0]] at the inter-community meeting in Semarang."
+    }
+   ],
+   "timestamp": "2026-09-29T16:31:12+00:00"
+  }
+ ]
+}

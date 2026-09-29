@@ -57,6 +57,39 @@ transcription errors of the marker itself, not paraphrases.
   benchmark masked run reproduces it (candidate causes: direct-API vs
   OpenRouter routing, the sweep's lower `max_tokens`, or batch intermittency).
 
+## Roll-in results (2026-09-29, later the same day)
+
+The benchmark migrated to `[[n]]` on the strength of the spike: the masked test
+set (`build_masked_testset.ts`), the `ENGINE_PRESERVE_SYSTEM` clause, and the
+survival scorer (`token_survival.ts`). The PUA-era masked results and the old
+test set live in `results/archive/masked-pua-2026-09-29/`. Two harness bugs
+were fixed in the same stroke:
+
+- `run_eval.ts`'s `cloudflare-chat` path hardcoded the `engine` prompt while
+  recording `--prompt-style` in the metadata — every CF `masked-preserve` run
+  before this date actually ran without the preservation clause;
+- the sweeps sent `--max-tokens 1024`, which reasoning models spend on thinking
+  before translating — truncation dropped trailing tokens and is the most
+  likely cause of DeepSeek's original masked failures (the sweeps now send
+  4096, matching the spike).
+
+Official survival re-measurement on the new scheme (`engine-preserve`, strict):
+
+| model (provider) | id→en | en→id |
+| --- | --- | --- |
+| `@cf/zai-org/glm-4.7-flash` | **9/10** — one intermittent `[[1]]` drop (masked-iden-06) | **10/10** |
+| `@cf/zai-org/glm-5.3-flash` | **10/10** | **10/10** |
+| `deepseek-flash` (official API) | **10/10** | **10/10** |
+| `deepseek-v4-pro` (official API) | **10/10** | **10/10** |
+
+Read-out: glm-5.3-flash and both DeepSeek models are fully fixed — DeepSeek's
+disqualification does not survive the scheme change, and with 77.10 chrF
+id→en it returns to contention pending the full re-sweep. glm-4.7-flash is
+viable but not spotless (1 drop in 20). The OpenRouter models
+(qwen3-235b-a22b-2507, glm-5, kimi-k2.5, gemma-4-31b-it) await re-measurement
+until the account is funded; gemma-4-31b-it's spike sweep (10/10 all schemes)
+is the only OR-side brackets evidence so far.
+
 ## Decision
 
 1. **Switch the masked-identity scheme from PUA tokens to ASCII brackets
