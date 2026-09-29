@@ -27,7 +27,7 @@ import {
 import { heatText, renderTokens } from '@/lib/data'
 import type { DirectionData, SurvivalRow } from '@/types'
 
-function FailuresDialog({
+export function FailuresDialog({
   row,
   open,
   onOpenChange,

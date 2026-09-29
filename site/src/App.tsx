@@ -1,9 +1,10 @@
+import { useState } from 'react'
 import { ExternalLink } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CategorySection } from '@/components/category-section'
-import { RunsTable } from '@/components/runs-table'
+import { RunsTable, type TableMode } from '@/components/runs-table'
 import { SurvivalSection } from '@/components/survival-section'
 import { data, directionLabel, formatDateTime } from '@/lib/data'
 
@@ -64,6 +65,7 @@ function Footer() {
 }
 
 export default function App() {
+  const [tableMode, setTableMode] = useState<TableMode>('quality')
   return (
     <div className="mx-auto min-h-dvh w-full max-w-6xl space-y-6 px-4 py-8 sm:px-6">
       <Header />
@@ -81,10 +83,33 @@ export default function App() {
         {data.directions.map((direction) => (
           <TabsContent key={direction.direction} value={direction.direction} className="space-y-6">
             <section className="space-y-2">
-              <h2 className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
-                {directionLabel(direction)} — all runs, sorted by chrF
-              </h2>
-              <RunsTable runs={direction.runs} />
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
+                  {directionLabel(direction)} — all runs, sorted by chrF
+                </h2>
+                <Tabs
+                  value={tableMode}
+                  onValueChange={(value) => setTableMode(value as TableMode)}
+                >
+                  <TabsList className="h-9">
+                    <TabsTrigger value="quality" className="px-4">
+                      Quality
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="survival"
+                      className="px-4"
+                      disabled={direction.token_survival.length === 0}
+                    >
+                      Token survival
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
+              <RunsTable
+                runs={direction.runs}
+                survival={direction.token_survival}
+                mode={tableMode}
+              />
             </section>
             <CategorySection direction={direction} />
             <SurvivalSection direction={direction} />
