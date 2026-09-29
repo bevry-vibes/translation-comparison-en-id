@@ -77,6 +77,10 @@ Gotchas the hard way:
 - **Gateway reasoning switches**: OpenRouter `{"reasoning":{"enabled":false}}`, DeepSeek
   `{"thinking":{"type":"disabled"}}` (via `--chat-kwargs-json`). glm-5.3-flash's endpoint
   mandates reasoning — it runs with it on (billed, but not leaked into content).
+- **QwenCloud's data-inspection filter** hard-rejects segments its classifier flags (e.g. the
+  FLORES sentence mentioning ISIS: `data_inspection_failed`, HTTP 400) and the qwen-mt/qwen-chat
+  runs die there — the 2026-09-29 v2 en→id re-runs have no qwen-mt/qwen3.x legs for this reason
+  (qwen-flash happened to pass). Another point for leaving QwenCloud.
 - **Cline's gateway** wraps responses in `{"data": …}` (the backend unwraps it) and
   black-holes batch runs — single requests work; do not use it for sweeps.
 - **Prompt styles** (see the site's Prompts section for verbatim text): `engine` = the

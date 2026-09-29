@@ -10,7 +10,7 @@
 # (glm-5.3-flash's OpenRouter endpoint mandates reasoning; it runs with it on).
 # masked mode runs the same models over data/masked.jsonl with the `engine-preserve`
 # prompt (the production engine instruction plus the keep-the-placeholder-tokens
-# clause) for eval/token_survival.py scoring instead of the summarize tables.
+# clause) for eval/deno/token_survival.ts scoring instead of the summarize tables.
 # Runs are sequential and the memguard run lock enforces one benchmark at a time.
 
 set -euo pipefail
@@ -22,7 +22,6 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 source "$ROOT/scripts/lib.sh"
 load_env
-ensure_venv
 
 OR_URL="https://openrouter.ai/api/v1"
 DS_URL="https://api.deepseek.com"
@@ -81,7 +80,7 @@ for entry in "${MODELS[@]}"; do
   for ((i = 0; i < ${#DIRECTIONS[@]}; i += 2)); do
     SRC="${DIRECTIONS[$i]}"
     TGT="${DIRECTIONS[$((i + 1))]}"
-    "$PY" eval/run_eval.py --backend openai --model "$model" \
+    deno run -A eval/deno/run_eval.ts --backend openai --model "$model" \
       --base-url "$url" --api-key "$key" \
       --chat-kwargs-json "$kwargs" --max-tokens 1024 \
       --prompt-style "$PROMPT" "${TESTSET_ARGS[@]}" \
@@ -90,7 +89,7 @@ for entry in "${MODELS[@]}"; do
 done
 
 if [[ "$MODE" == masked ]]; then
-  "$PY" eval/token_survival.py
+  deno run -A eval/deno/token_survival.ts
 else
-  refresh_site_data
+  (cd site && deno task data)
 fi

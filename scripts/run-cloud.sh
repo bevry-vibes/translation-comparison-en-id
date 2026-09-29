@@ -23,7 +23,6 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 source "$ROOT/scripts/lib.sh"
 load_env
-ensure_venv
 
 QWEN_URL="https://maas.qwencloudapi.com/compatible-mode/v1"
 QWEN_MODELS=(qwen-mt-flash qwen-mt-lite qwen-mt-turbo qwen-mt-plus)
@@ -32,21 +31,21 @@ REPLACEMENT_QWEN_MODELS=(qwen-mt-flash qwen-mt-turbo) # survivor + retiring base
 REPLACEMENT_CHAT_MODELS=("${QWEN_CHAT_MODELS[@]}")     # the raisable-rate-limit set
 
 run_cf() { # $1 src, $2 tgt
-  "$PY" eval/run_eval.py --backend cloudflare --model '@cf/meta/m2m100-1.2b' \
+  deno run -A eval/deno/run_eval.ts --backend cloudflare --model '@cf/meta/m2m100-1.2b' \
     --prompt-style none --src "$1" --tgt "$2" --name cf-m2m100-1.2b
   # the Deno client (eval/deno/run_eval.ts) is a kept-working TS consumer proof,
   # smoke-verified separately — not part of the measurement sweeps
 }
 
 run_kagi() { # $1 src, $2 tgt
-  "$PY" eval/run_eval.py --backend kagi --kagi-runtime python \
+  deno run -A eval/deno/run_eval.ts --backend kagi --kagi-runtime python \
     --prompt-style none --src "$1" --tgt "$2" --name kagi
 }
 
 run_qwen() { # $1 src, $2 tgt, $2.. models
   local model
   for model in "${@:3}"; do
-    "$PY" eval/run_eval.py --backend qwen --model "$model" \
+    deno run -A eval/deno/run_eval.ts --backend qwen --model "$model" \
       --prompt-style none --src "$1" --tgt "$2" --name "$model"
   done
 }
@@ -54,13 +53,13 @@ run_qwen() { # $1 src, $2 tgt, $2.. models
 run_qwen_chat() { # $1 src, $2 tgt, $3.. models
   local model
   for model in "${@:3}"; do
-    "$PY" eval/run_eval.py --backend openai --model "$model" --base-url "$QWEN_URL" \
+    deno run -A eval/deno/run_eval.ts --backend openai --model "$model" --base-url "$QWEN_URL" \
       --api-key "$QWENCLOUD_API_KEY" --prompt-style engine --src "$1" --tgt "$2" --name "$model"
   done
 }
 
 run_glm() { # $1 src, $2 tgt
-  "$PY" eval/run_eval.py --backend cloudflare-chat --model '@cf/zai-org/glm-4.7-flash' \
+  deno run -A eval/deno/run_eval.ts --backend cloudflare-chat --model '@cf/zai-org/glm-4.7-flash' \
     --prompt-style engine --src "$1" --tgt "$2" --name glm-4.7-flash
 }
 
@@ -100,4 +99,4 @@ for ((i = 0; i < ${#DIRECTIONS[@]}; i += 2)); do
   esac
 done
 
-refresh_site_data
+(cd site && deno task data)

@@ -1,0 +1,664 @@
+{
+  "label": "glm-4.7-flash-enid",
+  "backend": "cloudflare-chat",
+  "model": "@cf/zai-org/glm-4.7-flash",
+  "prompt_style": "engine",
+  "src": "en",
+  "tgt": "id",
+  "testset": "testset-v2.jsonl",
+  "pairs": 78,
+  "metrics": {
+    "bleu": 40.16,
+    "chrf": 67.11,
+    "chrfpp": 65.16
+  },
+  "metric_backend": "sacrebleu",
+  "exact_match_rate": 7.69,
+  "seconds_total": 1874.25,
+  "seconds_per_sentence": 24.029,
+  "chrF_by_category": {
+    "acronym": 92.81,
+    "flores-devtest": 72.0,
+    "idiom": 76.73,
+    "legal": 81.53,
+    "long-conditional": 74.89,
+    "marketing": 73.26,
+    "medical-instruction": 88.42,
+    "numbers-currency": 92.75,
+    "passive": 76.42,
+    "register-formal": 85.68,
+    "relative-clause": 84.73,
+    "second-person": 74.61,
+    "simple": 81.06,
+    "software-term": 82.41,
+    "tatoeba": 66.56,
+    "ui-short": 69.89
+  },
+  "timestamp": "2026-09-29T08:18:18+00:00",
+  "samples": [
+    {
+      "id": "en-id-001",
+      "category": "simple",
+      "source": "The meeting will start at nine in the morning.",
+      "reference": "Rapat akan dimulai pukul sembilan pagi.",
+      "hypothesis": "Pertemuan akan dimulai pada pukul sembilan pagi.",
+      "chrf": 81.06
+    },
+    {
+      "id": "en-id-002",
+      "category": "register-formal",
+      "source": "Please submit your documents before Friday.",
+      "reference": "Mohon serahkan dokumen Anda sebelum hari Jumat.",
+      "hypothesis": "Mohon serahkankan dokumen Anda sebelum Jumat.",
+      "chrf": 85.68
+    },
+    {
+      "id": "en-id-003",
+      "category": "software-term",
+      "source": "This browser is not supported on your device.",
+      "reference": "Peramban ini tidak didukung di perangkat Anda.",
+      "hypothesis": "Browser ini tidak didukung di perangkat Anda.",
+      "chrf": 82.41
+    },
+    {
+      "id": "en-id-004",
+      "category": "numbers-currency",
+      "source": "The total cost is $1,250.50, including tax.",
+      "reference": "Total biayanya adalah $1.250,50, termasuk pajak.",
+      "hypothesis": "Total biaya adalah $1.250,50, termasuk pajak.",
+      "chrf": 92.75
+    },
+    {
+      "id": "en-id-005",
+      "category": "idiom",
+      "source": "It is raining cats and dogs outside.",
+      "reference": "Di luar sedang hujan deras.",
+      "hypothesis": "Di luar sedang hujan lebat.",
+      "chrf": 76.73
+    },
+    {
+      "id": "en-id-006",
+      "category": "legal",
+      "source": "Neither party may assign this agreement without prior written consent.",
+      "reference": "Tidak ada pihak yang boleh mengalihkan perjanjian ini tanpa persetujuan tertulis terlebih dahulu.",
+      "hypothesis": "Kedua belah pihak tidak boleh menyerahkan perjanjian ini tanpa persetujuan tertulis terlebih dahulu.",
+      "chrf": 81.53
+    },
+    {
+      "id": "en-id-007",
+      "category": "marketing",
+      "source": "Fast, reliable, and always in sync.",
+      "reference": "Cepat, andal, dan selalu tersinkronisasi.",
+      "hypothesis": "Cepat, andal, dan selalu sinkron.",
+      "chrf": 73.26
+    },
+    {
+      "id": "en-id-008",
+      "category": "acronym",
+      "source": "GDP grew by 5.1% in the second quarter.",
+      "reference": "PDB tumbuh sebesar 5,1% pada kuartal kedua.",
+      "hypothesis": "PDB bertumbuh sebesar 5,1% pada kuartal kedua.",
+      "chrf": 92.81
+    },
+    {
+      "id": "en-id-009",
+      "category": "long-conditional",
+      "source": "If the payment is not received within 30 days, we reserve the right to suspend the account, in accordance with clause 4.2.",
+      "reference": "Jika pembayaran tidak diterima dalam waktu 30 hari, kami berhak menangguhkan akun tersebut, sesuai dengan pasal 4.2.",
+      "hypothesis": "Jika pembayaran tidak diterima dalam waktu 30 hari, kami berhak untuk memuat tunggu akun sesuai pasal 4.2.",
+      "chrf": 74.89
+    },
+    {
+      "id": "en-id-010",
+      "category": "passive",
+      "source": "The application must be signed by both parties.",
+      "reference": "Permohonan itu harus ditandatangani oleh kedua belah pihak.",
+      "hypothesis": "Aplikasi tersebut harus ditandatangani oleh kedua belah pihak.",
+      "chrf": 76.42
+    },
+    {
+      "id": "en-id-011",
+      "category": "second-person",
+      "source": "You should update your password immediately.",
+      "reference": "Anda sebaiknya segera memperbarui kata sandi Anda.",
+      "hypothesis": "Anda harus memperbarui kata sandi Anda segera.",
+      "chrf": 74.61
+    },
+    {
+      "id": "en-id-012",
+      "category": "ui-short",
+      "source": "Add to cart",
+      "reference": "Tambahkan ke keranjang.",
+      "hypothesis": "Tambah ke keranjang",
+      "chrf": 69.89
+    },
+    {
+      "id": "en-id-013",
+      "category": "medical-instruction",
+      "source": "Take one tablet twice a day after meals.",
+      "reference": "Minum satu tablet dua kali sehari setelah makan.",
+      "hypothesis": "Ambil satu tablet dua kali sehari setelah makan.",
+      "chrf": 88.42
+    },
+    {
+      "id": "en-id-014",
+      "category": "relative-clause",
+      "source": "The man who sold us the tickets said the train had already left.",
+      "reference": "Pria yang menjual tiket kepada kami mengatakan bahwa keretanya sudah berangkat.",
+      "hypothesis": "Pria yang menjual tiket kepada kami mengatakan kereta itu sudah berangkat.",
+      "chrf": 84.73
+    },
+    {
+      "id": "flores-enid-21",
+      "category": "flores-devtest",
+      "source": "The movie, featuring Ryan Gosling and Emma Stone, received nominations in all major categories.",
+      "reference": "Film yang dibintangi Ryan Gosling dan Emma Stone ini memperoleh nominasi di semua kategori utama.",
+      "hypothesis": "Film ini, yang dibintangi oleh Ryan Gosling dan Emma Stone, menerima nominasi di semua kategori utama.",
+      "chrf": 83.42
+    },
+    {
+      "id": "flores-enid-22",
+      "category": "flores-devtest",
+      "source": "Gosling and Stone received nominations for Best Actor and Actress respectively.",
+      "reference": "Gosling dan Stone masing-masing mendapatkan nominasi untuk Aktor dan Aktris terbaik.",
+      "hypothesis": "Gosling dan Stone mendapat nominasi untuk Aktor Terbaik dan Aktris Terbaik berturut-turut.",
+      "chrf": 71.63
+    },
+    {
+      "id": "flores-enid-23",
+      "category": "flores-devtest",
+      "source": "The other nominations include Best Picture, Director, Cinematography, Costume Design, Film-editing, Original Score, Production Design, Sound Editing, Sound Mixing and Original Screenplay.",
+      "reference": "Nominasi yang lain mencakup Gambar Terbaik, Sutradara Terbaik, Sinematografi Terbaik, Desain Kostum Terbaik, Penyuntingan Film Terbaik, Skor Orisinalitas, Desain Produksi Terbaik, Penyuntingan Suara Terbaik, Pemaduan Suara Terbaik, dan Skenario Asli Terbaik.",
+      "hypothesis": "Nominasi lainnya meliputi Film Terbaik, Sutradara, Sinematografi, Desain Busana, Penyuntingan Film, Skor Asli, Desain Produksi, Penyuntingan Suara, Pencampuran Suara, dan Skenario Asli.",
+      "chrf": 54.69
+    },
+    {
+      "id": "flores-enid-24",
+      "category": "flores-devtest",
+      "source": "Two songs from the movie, Audition (The Fools Who Dream) and City of Stars, received nominations for best original song. Lionsgate studio received 26 nominations — more than any other studio.",
+      "reference": "Dua lagu dari film tersebut, Audition (The Fools Who Dream) dan City of Stars, menerima nominasi untuk lagu orisinal terbaik. Studio Lionsgate menerima 26 nominasi â€” paling banyak dibanding studio lainnya.",
+      "hypothesis": "Dua lagu dari film, *Audition* (*The Fools Who Dream*) dan *City of Stars*, menerima nominasi untuk lagu orisinal terbaik. Studio Lionsgate meraih 26 nominasi, lebih banyak daripada studio manapun lainnya.",
+      "chrf": 73.91
+    },
+    {
+      "id": "flores-enid-25",
+      "category": "flores-devtest",
+      "source": "Late on Sunday, the United States President Donald Trump, in a statement delivered via the press secretary, announced US troops would be leaving Syria.",
+      "reference": "Di akhir hari Minggu, Presiden Amerika Serikat Donald Trump, dalam pernyataan yang dikirimkan lewat sekretariat juru bicara, mengumumkan bahwa tentara AS akan meninggalkan Suriah.",
+      "hypothesis": "Pada akhir pekan, Presiden Amerika Serikat, Donald Trump, dalam sebuah pernyataan yang disampaikan melalui pembantu pers, mengumumkan pasukan Amerika Serikat akan meninggalkan Suriah.",
+      "chrf": 62.56
+    },
+    {
+      "id": "flores-enid-26",
+      "category": "flores-devtest",
+      "source": "The announcement was made after Trump had a phone conversation with Turkish President Recep Tayyip Erdoğan.",
+      "reference": "Pengumuman itu dibuat setelah Trump melakukan percakapan telepon dengan Presiden Turki, Recep Tayyip ErdoÄŸan.",
+      "hypothesis": "Pengumuman tersebut dikeluarkan setelah Trump melakukan percakapan telepon dengan Presiden Turki Recep Tayyip Erdoğan.",
+      "chrf": 82.51
+    },
+    {
+      "id": "flores-enid-27",
+      "category": "flores-devtest",
+      "source": "Turkey would also take over guarding captured ISIS fighters which, the statement said, European nations have refused to repatriate.",
+      "reference": "Turki juga akan mengambil alih penjagaan prajurit ISIS yang tertangkap, yang menurut pernyatan tersebut, negara Eropa menolak untuk memulangkan mereka.",
+      "hypothesis": "Turki juga akan mengambil alih menjaga tawanan ISIS yang, menurut pernyataan itu, negara-negara Eropa telah menolak untuk memulangkannya.",
+      "chrf": 67.37
+    },
+    {
+      "id": "flores-enid-28",
+      "category": "flores-devtest",
+      "source": "This not only confirms that at least some dinosaurs had feathers, a theory already widespread, but provides details fossils generally cannot, such as color and three-dimensional arrangement.",
+      "reference": "Hal ini tidak hanya mengonfirmasi bahwa setidaknya beberapa dinosaurus berbulu, teori yang sudah menyebar luas, tetapi juga dapat memberikan detail yang biasanya tidak dapat diberikan oleh fosil, seperti warna dan susunan tiga dimensi.",
+      "hypothesis": "Ini tidak hanya mengkonfirmasi bahwa setidaknya sebagian dinosaurus berbulu, sebuah teori yang sudah meluas, tetapi juga memberikan detail yang umumnya tidak mampu diberikan oleh fosil, seperti warna dan susunan tiga dimensi.",
+      "chrf": 80.43
+    },
+    {
+      "id": "flores-enid-29",
+      "category": "flores-devtest",
+      "source": ". Scientists say this animal's plumage was chestnut-brown on top with a pale or carotenoid-colored underside.",
+      "reference": "Ilmuwan mengatakan bulu hewan ini berwarna cokelat seperti kastanye di bagian atas dengan bagian bawah berwarna pucat atau karotenoid.",
+      "hypothesis": "Para ilmuwan mengatakan bahwa bulu hewan ini berwarna cokelat-bata di bagian atas dengan bagian bawah pucat atau berwarna karotenoid.",
+      "chrf": 82.02
+    },
+    {
+      "id": "flores-enid-30",
+      "category": "flores-devtest",
+      "source": "The find also grants insight into the evolution of feathers in birds.",
+      "reference": "Penemuan ini juga memberikan wawasan tentang evolusi bulu pada burung.",
+      "hypothesis": "Temuan ini juga memberikan wawasan ke evolusi bulu burung.",
+      "chrf": 75.01
+    },
+    {
+      "id": "flores-enid-31",
+      "category": "flores-devtest",
+      "source": "Because the dinosaur feathers do not have a well-developed shaft, called a rachis, but do have other features of feathers — barbs and barbules — the researchers inferred the rachis was likely a later evolutionary development that these other features.",
+      "reference": "Karena bulu dinosaurus tidak memiliki batang yang berkembang dengan baik, yang disebut rachis, tetapi memiliki ciri yang lain â€” duri dan barbule â€” peneliti berkesimpulan bahwa rachis mungkin merupakan perkembangan evolusi lebih akhir dibanding ciri-ciri lainnya.",
+      "hypothesis": "Karena bulu dinosaurus tidak memiliki garis tengah yang berkembang baik, yang disebut rakhis, melainkan memiliki fitur-fitur lain pada bulu — yaitu garis-garis dan empunya — para peneliti menyimpulkan bahwa rakhis kemungkinan besar merupakan perkembangan evolusi yang lebih lanjut setelah fitur-fitur tersebut.",
+      "chrf": 62.04
+    },
+    {
+      "id": "flores-enid-32",
+      "category": "flores-devtest",
+      "source": "The feathers' structure suggests that they were not used in flight but rather for temperature regulation or display. The researchers suggested that, even though this is the tail of a young dinosaur, the sample shows adult plumage and not a chick's down.",
+      "reference": "Struktur bulu menunjukkan bahwa bulu tersebut tidak digunakan untuk terbang, melainkan untuk pengaturan suhu atau penampilan. Para peneliti berpendapat, meskipun ini adalah ekor anak dinosaurus, sampelnya menunjukkan bulu burung dewasa, bukan bulu anak ayam.",
+      "hypothesis": "Struktur bulunya menunjukkan bahwa bulu-bulu itu tidak digunakan untuk terbang, melainkan untuk pengaturan suhu atau peragaan. Para peneliti menyatakan bahwa meskipun ini adalah ekor dinosaurus muda, sampel ini menunjukkan bulu dewasa, bukan bulu halus pada anak.",
+      "chrf": 77.5
+    },
+    {
+      "id": "flores-enid-33",
+      "category": "flores-devtest",
+      "source": "The researchers suggested that, even though this is the tail of a young dinosaur, the sample shows adult plumage and not a chick's down.",
+      "reference": "Para peneliti berpendapat, meskipun ini adalah ekor anak dinosaurus, sampel memperlihatkan bulu burung dewasa, bukan bulu anak ayam.",
+      "hypothesis": "Para peneliti menyarankan bahwa, meskipun ini adalah ekor dinosaurus muda, sampel ini menunjukkan bulu dewasa dan bukan bulu jumbai.",
+      "chrf": 60.71
+    },
+    {
+      "id": "flores-enid-34",
+      "category": "flores-devtest",
+      "source": "A car bomb detonated at police headquarters in Gaziantep, Turkey yesterday morning killed two police officers and injured more than twenty other people.",
+      "reference": "Sebuah bom mobil yang meledak di markas polisi di Gaziantep, Turki kemarin pagi telah menewaskan dua petugas polisi, dan melukai lebih dari 20 orang lainnya.",
+      "hypothesis": "Sebuah bom mobil meledak di markas kepolisian di Gaziantep, Turki kemarin pagi membunuh dua petugas polisi dan melukai lebih dari dua puluh orang lain.",
+      "chrf": 76.52
+    },
+    {
+      "id": "flores-enid-35",
+      "category": "flores-devtest",
+      "source": "The governor's office said nineteen of the injured were police officers.",
+      "reference": "Kantor gubernur mengatakan sembilan belas orang yang terluka merupakan aparat kepolisian.",
+      "hypothesis": "Kantor Gubernur mengatakan sembilan belas dari yang terluka adalah polisi.",
+      "chrf": 67.06
+    },
+    {
+      "id": "flores-enid-36",
+      "category": "flores-devtest",
+      "source": "Police said they suspect an alleged Daesh (ISIL) militant of responsibility for the attack.",
+      "reference": "Polisi mengatakan mereka mencurigai seorang yang diduga militan Daesh (ISIL) bertanggung jawab atas serangan tersebut.",
+      "hypothesis": "Polisi mengatakan mereka menduga seorang militant Daesh (ISIL) bertanggung jawab atas serangan tersebut.",
+      "chrf": 82.1
+    },
+    {
+      "id": "flores-enid-37",
+      "category": "flores-devtest",
+      "source": "They found the Sun operated on the same basic principles as other stars: The activity of all stars in the system was found to be driven by their luminosity, their rotation, and nothing else.",
+      "reference": "Mereka menemukan bahwa Matahari beroperasi dengan prinsip dasar yang sama seperti bintang lainnya: Diketahui bahwa aktivitas semua bintang dalam sistem didorong oleh terang cahayanya, perputarannya, hanya itu.",
+      "hypothesis": "Mereka menemukan bahwa Matahari beroperasi menurut prinsip dasar yang sama seperti bintang-bintang lain: Aktivitas semua bintang dalam sistem tersebut ditemukan didorong oleh kecerahan dan rotasi mereka, dan tidak ada yang lain.",
+      "chrf": 70.11
+    },
+    {
+      "id": "flores-enid-38",
+      "category": "flores-devtest",
+      "source": "The luminosity and rotation are used together to determine a star's Rossby number, which is related to plasma flow.",
+      "reference": "Luminositas dan rotasi digunakan secara bersamaan untuk menentukan bilangan Rossby dari sebuah bintang, yang berkaitan dengan aliran plasma.",
+      "hypothesis": "Intensitas cahaya dan rotasi digunakan bersama-sama untuk menentukan angka Rossby bintang, yang berkaitan dengan aliran plasma.",
+      "chrf": 71.83
+    },
+    {
+      "id": "flores-enid-39",
+      "category": "flores-devtest",
+      "source": "The smaller the Rossby number, the less active the star with respect to magnetic reversals.",
+      "reference": "Semakin kecil angka Rossby-nya, semakin kurang aktif bintang tersebut terkait pembalikan magnetik.",
+      "hypothesis": "Semakin kecil angka Rossby, semakin tidak aktif bintang sehubungan dengan balikan magnetik.",
+      "chrf": 66.25
+    },
+    {
+      "id": "flores-enid-40",
+      "category": "flores-devtest",
+      "source": "During his trip, Iwasaki ran into trouble on many occasions.",
+      "reference": "Selama perjalanannya, Iwasaki mengalami masalah dalam banyak kesempatan.",
+      "hypothesis": "Selama perjalanannya, Iwasaki mengalami banyak kesulitan.",
+      "chrf": 72.26
+    },
+    {
+      "id": "tatoeba-enid-0000",
+      "category": "tatoeba",
+      "source": "I keep telling myself it doesn't matter.",
+      "reference": "Aku terus berkata kepada diriku bahwa itu tidak masalah.",
+      "hypothesis": "Aku terus bilang ke diri sendiri, ini tidak penting.",
+      "chrf": 36.87
+    },
+    {
+      "id": "tatoeba-enid-0001",
+      "category": "tatoeba",
+      "source": "She is able to grasp the situation.",
+      "reference": "Dia mampu memahami situasi yang ada.",
+      "hypothesis": "Dia mampu memahami situasinya.",
+      "chrf": 75.8
+    },
+    {
+      "id": "tatoeba-enid-0002",
+      "category": "tatoeba",
+      "source": "Which subject do you like best?",
+      "reference": "Pelajaran mana yang paling kamu sukai?",
+      "hypothesis": "Mata pelajaran apa yang paling kamu suka?",
+      "chrf": 79.62
+    },
+    {
+      "id": "tatoeba-enid-0003",
+      "category": "tatoeba",
+      "source": "Keep Tom quiet.",
+      "reference": "Jaga agar Tom tetap diam.",
+      "hypothesis": "Jaga Tom agar diam.",
+      "chrf": 57.94
+    },
+    {
+      "id": "tatoeba-enid-0004",
+      "category": "tatoeba",
+      "source": "Above all, beware of the cat.",
+      "reference": "Yang terpenting, berhati-hatilah pada kucing.",
+      "hypothesis": "Paling utama, waspadalah terhadap kucing.",
+      "chrf": 35.85
+    },
+    {
+      "id": "tatoeba-enid-0005",
+      "category": "tatoeba",
+      "source": "It's nothing but a kind of joke.",
+      "reference": "Itu tidak lebih dari sekadar lelucon.",
+      "hypothesis": "Ini hanyalah semacam lelucon.",
+      "chrf": 30.56
+    },
+    {
+      "id": "tatoeba-enid-0006",
+      "category": "tatoeba",
+      "source": "He'll carry you.",
+      "reference": "Dia akan membawamu.",
+      "hypothesis": "Dia akan membawamu.",
+      "chrf": 100.0
+    },
+    {
+      "id": "tatoeba-enid-0007",
+      "category": "tatoeba",
+      "source": "Tom hid himself under the table.",
+      "reference": "Tom menyembunyikan dirinya di bawah meja.",
+      "hypothesis": "Tom menyembunyikan dirinya di bawah meja.",
+      "chrf": 100.0
+    },
+    {
+      "id": "tatoeba-enid-0008",
+      "category": "tatoeba",
+      "source": "I had my purse and commutation ticket stolen while I was sleeping on the train.",
+      "reference": "Aku mendapati dompet dan karcis comuterku dicuri saat aku tertidur di kereta.",
+      "hypothesis": "Dompet dan tiket komuter saya dicuri saat saya sedang tidur di kereta.",
+      "chrf": 55.7
+    },
+    {
+      "id": "tatoeba-enid-0009",
+      "category": "tatoeba",
+      "source": "Robert likes to chat with his boyfriend.",
+      "reference": "Robert suka mengobrol dengan pacarnya.",
+      "hypothesis": "Robert suka ngobrol dengan pacarnya.",
+      "chrf": 88.95
+    },
+    {
+      "id": "tatoeba-enid-0010",
+      "category": "tatoeba",
+      "source": "There's no reason to be afraid.",
+      "reference": "Tidak ada alasan untuk takut.",
+      "hypothesis": "Tidak ada alasan untuk takut.",
+      "chrf": 100.0
+    },
+    {
+      "id": "tatoeba-enid-0011",
+      "category": "tatoeba",
+      "source": "Thank you very much.",
+      "reference": "Terima kasih banyak.",
+      "hypothesis": "Terima kasih sekali.",
+      "chrf": 63.25
+    },
+    {
+      "id": "tatoeba-enid-0012",
+      "category": "tatoeba",
+      "source": "Don't make me laugh.",
+      "reference": "Jangan membuatku tertawa.",
+      "hypothesis": "Jangan bikin aku ketawa.",
+      "chrf": 43.21
+    },
+    {
+      "id": "tatoeba-enid-0013",
+      "category": "tatoeba",
+      "source": "He hasn't come yet.",
+      "reference": "Dia belum datang.",
+      "hypothesis": "Dia belum datang.",
+      "chrf": 100.0
+    },
+    {
+      "id": "tatoeba-enid-0014",
+      "category": "tatoeba",
+      "source": "I'm reasonable.",
+      "reference": "Aku orang yang rasional.",
+      "hypothesis": "Saya masuk akal.",
+      "chrf": 19.79
+    },
+    {
+      "id": "tatoeba-enid-0015",
+      "category": "tatoeba",
+      "source": "It's on the first floor of that building.",
+      "reference": "Itu ada di lantai satu dari bangunan itu.",
+      "hypothesis": "Itu ada di lantai pertama gedung itu.",
+      "chrf": 55.0
+    },
+    {
+      "id": "tatoeba-enid-0016",
+      "category": "tatoeba",
+      "source": "Let me say goodbye to Tom.",
+      "reference": "Biarkan saya mengucapkan selamat tinggal kepada Tom.",
+      "hypothesis": "Biarkan saya mengucapkan selamat tinggal ke Tom.",
+      "chrf": 88.76
+    },
+    {
+      "id": "tatoeba-enid-0017",
+      "category": "tatoeba",
+      "source": "Don't mess me around!",
+      "reference": "Jangan mempermainkanku!",
+      "hypothesis": "Jangan main-main dengan aku!",
+      "chrf": 44.68
+    },
+    {
+      "id": "tatoeba-enid-0018",
+      "category": "tatoeba",
+      "source": "I'm a lousy swimmer.",
+      "reference": "Aku perenang yang payah.",
+      "hypothesis": "Aku penyelam yang buruk.",
+      "chrf": 40.43
+    },
+    {
+      "id": "tatoeba-enid-0019",
+      "category": "tatoeba",
+      "source": "The green areas are the real lungs of the city.",
+      "reference": "Ruang terbuka hijau adalah paru-paru dari kota.",
+      "hypothesis": "Kawasan hijau adalah paru-paru sejati kota.",
+      "chrf": 62.73
+    },
+    {
+      "id": "tatoeba-enid-0020",
+      "category": "tatoeba",
+      "source": "Who is the owner of this ship?",
+      "reference": "Siapa pemilik kapal itu?",
+      "hypothesis": "Siapa pemilik kapal ini?",
+      "chrf": 85.11
+    },
+    {
+      "id": "tatoeba-enid-0021",
+      "category": "tatoeba",
+      "source": "It's time to wake up!",
+      "reference": "Sudah waktunya untuk bangun!",
+      "hypothesis": "Waktunya bangun",
+      "chrf": 48.19
+    },
+    {
+      "id": "tatoeba-enid-0022",
+      "category": "tatoeba",
+      "source": "Tom hasn't seen the video yet.",
+      "reference": "Tom belum menonton videonya.",
+      "hypothesis": "Tom belum melihat videonya.",
+      "chrf": 70.21
+    },
+    {
+      "id": "tatoeba-enid-0023",
+      "category": "tatoeba",
+      "source": "The lion is an animal.",
+      "reference": "Singa adalah seekor hewan.",
+      "hypothesis": "Singa adalah hewan.",
+      "chrf": 69.85
+    },
+    {
+      "id": "tatoeba-enid-0024",
+      "category": "tatoeba",
+      "source": "Gold is far heavier than water.",
+      "reference": "Emas jauh lebih berat ketimbang air.",
+      "hypothesis": "Emas jauh lebih berat daripada air.",
+      "chrf": 68.93
+    },
+    {
+      "id": "tatoeba-enid-0025",
+      "category": "tatoeba",
+      "source": "I'm proud of you.",
+      "reference": "Aku bangga padamu.",
+      "hypothesis": "Saya bangga padamu.",
+      "chrf": 78.15
+    },
+    {
+      "id": "tatoeba-enid-0026",
+      "category": "tatoeba",
+      "source": "You speak English fluently.",
+      "reference": "Kau berbicara bahasa Inggris dengan fasih.",
+      "hypothesis": "Anda berbicara Inggris dengan lancar.",
+      "chrf": 59.67
+    },
+    {
+      "id": "tatoeba-enid-0027",
+      "category": "tatoeba",
+      "source": "Tom has a bad disposition.",
+      "reference": "Tom mempunyai perangai yang buruk.",
+      "hypothesis": "Tom memiliki sifat buruk.",
+      "chrf": 37.33
+    },
+    {
+      "id": "tatoeba-enid-0028",
+      "category": "tatoeba",
+      "source": "Please shut the door.",
+      "reference": "Tolong tutup pintunya.",
+      "hypothesis": "Tolong tutup pintunya.",
+      "chrf": 100.0
+    },
+    {
+      "id": "tatoeba-enid-0029",
+      "category": "tatoeba",
+      "source": "I don't expect anything from you.",
+      "reference": "Aku tidak mengharapkan apa-apa darimu.",
+      "hypothesis": "Saya tidak mengharapkan apa-apa dari Anda.",
+      "chrf": 79.63
+    },
+    {
+      "id": "tatoeba-enid-0030",
+      "category": "tatoeba",
+      "source": "I hope I haven't interrupted you.",
+      "reference": "Kuharap aku tidak mengganggumu.",
+      "hypothesis": "Saya berharap saya tidak mengganggu Anda.",
+      "chrf": 58.97
+    },
+    {
+      "id": "tatoeba-enid-0031",
+      "category": "tatoeba",
+      "source": "School starts next Monday.",
+      "reference": "Sekolah mulai Senin depan.",
+      "hypothesis": "Sekolah dimulai Senin depan.",
+      "chrf": 88.8
+    },
+    {
+      "id": "tatoeba-enid-0032",
+      "category": "tatoeba",
+      "source": "We are going to have a party on Saturday night.",
+      "reference": "Kami akan mengadakan sebuah pesta pada malam Sabtu.",
+      "hypothesis": "Kita akan mengadakan pesta pada malam Sabtu.",
+      "chrf": 76.71
+    },
+    {
+      "id": "tatoeba-enid-0033",
+      "category": "tatoeba",
+      "source": "Tom needed training.",
+      "reference": "Tom membutuhkan pelatihan.",
+      "hypothesis": "Tom perlu pelatihan.",
+      "chrf": 50.75
+    },
+    {
+      "id": "tatoeba-enid-0034",
+      "category": "tatoeba",
+      "source": "Tom is itching for a fight.",
+      "reference": "Tom sudah tidak tahan ingin berkelahi.",
+      "hypothesis": "Tom sedang menggeletar ingin bertarung.",
+      "chrf": 37.14
+    },
+    {
+      "id": "tatoeba-enid-0035",
+      "category": "tatoeba",
+      "source": "We went to the park to take pictures.",
+      "reference": "Kami pergi ke taman untuk berfoto.",
+      "hypothesis": "Kami pergi ke taman untuk berfoto.",
+      "chrf": 100.0
+    },
+    {
+      "id": "tatoeba-enid-0036",
+      "category": "tatoeba",
+      "source": "I'm making a doll for Anna.",
+      "reference": "Aku sedang membuat boneka untuk Anna.",
+      "hypothesis": "Saya sedang membuat boneka untuk Anna.",
+      "chrf": 89.46
+    },
+    {
+      "id": "tatoeba-enid-0037",
+      "category": "tatoeba",
+      "source": "I have read every book in the library.",
+      "reference": "Aku sudah membaca setiap buku di perpustakaan.",
+      "hypothesis": "Saya sudah membaca setiap buku di perpustakaan.",
+      "chrf": 91.54
+    },
+    {
+      "id": "tatoeba-enid-0038",
+      "category": "tatoeba",
+      "source": "However, I have no money.",
+      "reference": "Bagaimanapun, saya tidak punya uang.",
+      "hypothesis": "Namun, saya tidak punya uang.",
+      "chrf": 74.29
+    },
+    {
+      "id": "tatoeba-enid-0039",
+      "category": "tatoeba",
+      "source": "Are you sleeping?",
+      "reference": "Kamu lagi tidur?",
+      "hypothesis": "Apakah sedang tidur?",
+      "chrf": 40.9
+    },
+    {
+      "id": "tatoeba-enid-0040",
+      "category": "tatoeba",
+      "source": "I like going to the movies.",
+      "reference": "Aku suka pergi ke bioskop.",
+      "hypothesis": "Saya suka menonton film.",
+      "chrf": 21.25
+    },
+    {
+      "id": "tatoeba-enid-0041",
+      "category": "tatoeba",
+      "source": "Do you know Tom's real name?",
+      "reference": "Apa kamu tahu nama asli Tom?",
+      "hypothesis": "Apakah Anda tahu nama asli Tom?",
+      "chrf": 74.73
+    },
+    {
+      "id": "tatoeba-enid-0042",
+      "category": "tatoeba",
+      "source": "All but three of the cars in the parking lot were white.",
+      "reference": "Semua mobil yang ada di tempat parkir berwarna putih, kecuali tiga mobil.",
+      "hypothesis": "Semua mobil di tempat parkir itu, kecuali tiga, berwarna putih.",
+      "chrf": 71.63
+    },
+    {
+      "id": "tatoeba-enid-0043",
+      "category": "tatoeba",
+      "source": "A man whose wife is dead is called a widower.",
+      "reference": "Pria yang istrinya telah meninggal dunia disebut seorang duda.",
+      "hypothesis": "Seorang pria yang istrinya sudah meninggal disebut duda.",
+      "chrf": 76.29
+    }
+  ]
+}

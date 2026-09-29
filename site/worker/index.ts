@@ -48,7 +48,7 @@ export default {
       const data = await env.ASSETS.fetch(new URL("/data/results.json", url.origin));
       if (!data.ok) return json({ error: "results data not built; run `deno task data`" }, 503);
       const results = await data.json();
-      const direction = `${survivalMatch[1].slice(3)}->${survivalMatch[1].slice(0, 2)}`;
+      const direction = `${survivalMatch[1].slice(0, 2)}->${survivalMatch[1].slice(3)}`;
       return json({
         direction,
         rows: results.token_survival.filter((row: { direction: string }) => row.direction === direction),
