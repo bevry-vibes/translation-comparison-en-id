@@ -26,7 +26,7 @@ function Header() {
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
         <span>
           Generated <time dateTime={data.generated_at}>{formatDateTime(data.generated_at)}</time> by{' '}
-          <span className="font-mono text-xs">eval/build_site_data.py</span>
+          <span className="font-mono text-xs">site/tools/build_data.ts</span>
         </span>
         <a
           href={REPO_URL}
@@ -60,7 +60,7 @@ function Footer() {
         Masked-name survival comes from separate 10-segment runs; the Token survival toggle joins
         them onto the main rows by model. Source data:{' '}
         <span className="font-mono">results/*.json</span>; rebuilt via{' '}
-        <span className="font-mono">.venv/bin/python eval/build_site_data.py</span>.
+        <span className="font-mono">cd site && deno task data</span>.
       </p>
     </footer>
   )
@@ -71,7 +71,9 @@ export default function App() {
   return (
     <div className="mx-auto min-h-dvh w-full max-w-6xl space-y-6 px-4 py-8 sm:px-6">
       <Header />
-      <RefreshTerminal />
+      {/* localhost only: production ships a deploy-time static snapshot, so the
+        "live" monitor would sit there frozen — dev builds get the real feed */}
+      {import.meta.env.DEV && <RefreshTerminal />}
       <RecommendationSection recommendation={data.recommendation} />
       <Tabs defaultValue={data.directions[0]?.direction} className="gap-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
