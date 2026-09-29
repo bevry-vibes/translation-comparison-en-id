@@ -35,8 +35,11 @@ Confirmed decisions (session 2026-09-29):
   runs-table column definitions.
 - `docs/model-survey.md` restructured for legibility; its tables frozen as point-in-time
   snapshots (the site carries live numbers going forward).
-- The en→id test-set asymmetry (78 vs 14 segments) is real but **out of scope**: rebalancing it
-  invalidates historical comparability and is a separate user decision.
+- **en→id test-set parity is in scope** (approved 2026-09-29: "do it, it was meant to be
+  included … do not care about backwards compat"): grow the en→id side to segment parity with
+  id→en (~78 each), archive the 14-segment v1 en→id results as incomparable, and re-measure the
+  existing 2026-09-29 candidate set on the balanced set. Historical en→id comparability is
+  explicitly sacrificed — that is the point of no-back-compat.
 - Reciprocity gate: the live combo `zcode-zcode-glm53flash` is excepted by the policy owner per
   [bevry-vibes/agent-detect#3](https://github.com/bevry-vibes/agent-detect/issues/3); trailers
   are generated via agent-detect's documented from-identity mode.
@@ -115,29 +118,49 @@ Confirmed decisions (session 2026-09-29):
 16. **README restructure**: site-first results story; quick start → harness → site (build +
     deploy) → providers → docs; no references to retired files.
 
-### 5. Survey restructure
+### 5. en→id test-set parity (approved 2026-09-29)
 
-17. `docs/model-survey.md`: "Current recommendation" box at the very top (mirroring
+17. **Balance the test set.** Extend `eval/build_testset.py` to build both directions at
+    segment parity (~78 each): the en→id side gains FLORES-101 devtest + Tatoeba segments
+    alongside its 14 curated probes; the id→en side must regenerate byte-identical segments
+    (verified by diffing ids/sources against the current `data/testset.jsonl`) so the existing
+    id→en results stay valid. Version the output as `data/testset-v2.jsonl` and keep the
+    test-set name recorded in every run payload.
+18. **Archive the v1 en→id results.** Move every live `*-enid.json` with `pairs == 14` to
+    `results/archive/testset-v1/` — 14 curated probes cannot rank against 78-segment legs. The
+    id→en results stay live. The masked set is already 10/10 balanced and is untouched.
+19. **Re-measure the existing candidate set on the new en→id side** (same models as the
+    2026-09-29 sweep — no new candidates): the OpenRouter + DeepSeek legs
+    (`scripts/run-providers.sh en-id`), the QwenCloud `qwen` + `qwen-chat` legs and glm
+    (`scripts/run-cloud.sh`), and Kagi. Sequential behind the memguard run lock; kicked off in
+    the background while phases 2–4 proceed. Wall clock is a few hours of unattended API calls;
+    cost is pennies-to-a-dollar at these segment counts.
+20. Rebuild site data; en→id tables become direction-comparable;
+    `results/README.md` documents test-set v2 and the archive layout.
+
+### 6. Survey restructure
+
+21. `docs/model-survey.md`: "Current recommendation" box at the very top (mirroring
     `docs/recommendation.json`); measurement tables explicitly labeled point-in-time snapshots
     (frozen — live numbers live on the site); history sections ordered with their supersession
     links intact. Content otherwise preserved verbatim.
 
-### 6. Verify and ship
+### 7. Verify and ship
 
-18. Rebuild data flow end to end: `build_testset.py` (unchanged outputs),
-    `build_masked_testset.py`, one smoke scoring pass, `build_site_data.py` (now consuming
-    survival JSON), `npm run build`, `wrangler deploy`.
-19. Browser verification pass over the deployed site: tabs, both modes, sorting, sample and
+22. Rebuild data flow end to end: `build_testset.py`, `build_masked_testset.py`, one smoke
+    scoring pass, `build_site_data.py` (now consuming survival JSON), `npm run build`,
+    `wrangler deploy`.
+23. Browser verification pass over the deployed site: tabs, both modes, sorting, sample and
     failure dialogs, the new methodology/prompts/recommendation segments.
-20. An agent-comprehension read-through: follow AGENTS.md → README → results/README.md → site
+24. An agent-comprehension read-through: follow AGENTS.md → README → results/README.md → site
     as a fresh agent would, and fix anything still ambiguous.
-21. Commits per logical chunk (conventional, trailer, 1Password-signed), push, deploy.
+25. Commits per logical chunk (conventional, trailer, 1Password-signed), push, deploy.
 
 ## Out of scope
 
-- Rebalancing the en→id test set to segment parity with id→en (separate decision — invalidates
-  historical comparability).
 - Switching the production translator (patipeaceplace) to the recommended successor; this repo
   only measures and recommends.
-- New model runs beyond a smoke pass; the 2026-09-29 sweep data is the dataset this refactor
-  is verified against.
+- Introducing new models or providers: the parity re-runs (phase 5) re-measure the existing
+  2026-09-29 candidate set on the balanced test set; no new candidates join. (The refactor
+  phases themselves are verified against committed data plus one smoke pass — they require no
+  benchmarking runs at all.)

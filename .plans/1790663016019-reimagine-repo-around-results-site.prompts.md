@@ -77,6 +77,14 @@
 
 > all good, do a new plan - do not care about backwards compat
 
+**14.** (plan amendment: parity in, "new runs" bullet questioned)
+
+> > Rebalancing the en→id test set to segment parity with id→en (separate decision — invalidates historical comparability).
+> do it, it was meant to be included in ignore b/c
+>
+> > New model runs beyond a smoke pass; the 2026-09-29 sweep data is the dataset this refactor is verified against.
+> what is this?
+
 ## Steering notes
 
 - Prompts 7–9 designed the current table UX (survival as a column mode joined by model, stable
@@ -85,3 +93,8 @@
 - Prompts 10–12 scoped the agent-guidance layer, the prompts/replication guidance, and the
   tech-debt agenda; prompt 12 explicitly preserves `docs/indonesian-notes.md`.
 - Prompt 13 set the no-backwards-compatibility constraint and requested this plan.
+- Prompt 14 pulled en→id test-set parity into scope as phase 5 (archive v1 en→id results,
+  re-measure the same candidate set on the balanced side) and asked what the "new model runs"
+  out-of-scope bullet meant (answered: the refactor phases need no benchmarking runs —
+  committed data plus a smoke pass verifies them; only the parity phase re-runs models, and it
+  re-runs the existing candidate set, adding no new candidates).
