@@ -98,6 +98,12 @@ export function RecommendationSection({ recommendation }: { recommendation: Reco
         </div>
 
         <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">
+            Disqualified <span className="font-semibold text-foreground">does not mean bad at translation</span> —
+            several of these top the quality table. It means unusable for this production pipeline, which masks
+            people&apos;s names into protection tokens before translating and restores them afterwards; the
+            Token survival toggle shows exactly where each model drops them.
+          </p>
           {recommendation.disqualified.map((entry) => (
             <div key={entry.reason} className="flex gap-2 rounded-lg border border-red-500/20 bg-red-500/5 p-3">
               <ShieldX className="mt-0.5 size-3.5 shrink-0 text-red-500 dark:text-red-400" />

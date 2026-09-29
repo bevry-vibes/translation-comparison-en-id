@@ -1,6 +1,6 @@
 {
   "updated": "2026-09-29",
-  "summary": "qwen-mt-turbo (the production translator) retires 2026-10-10. A successor must pass strict masked-name token survival, match turbo-class quality, and fit the 5-minute cron budget. The 2026-09-29 off-QwenCloud provider sweep re-measured 12 open-weight models on both directions plus the masked set.",
+  "summary": "qwen-mt-turbo (the production translator) retires 2026-10-10. A successor must pass strict masked-name token survival, match turbo-class quality, and fit the 5-minute cron budget. The 2026-09-29 off-QwenCloud provider sweep re-measured 12 open-weight models on both directions plus the masked set. Disqualified below does NOT mean bad at translation \u2014 the DeepSeek models are the best pure translators measured \u2014 it means unusable for THIS production pipeline, which masks people's names before translation and restores them afterwards.",
   "primary": {
     "model": "qwen/qwen3-235b-a22b-2507",
     "provider": "OpenRouter",
@@ -35,19 +35,30 @@
   ],
   "disqualified": [
     {
-      "models": ["deepseek-flash", "deepseek-v4-pro", "deepseek/deepseek-v4-flash"],
-      "reason": "the raw-quality winners (77.10 id->en, 87.05 en->id for deepseek-flash) drop masked names in the production direction (9/10, 6/10, 7/10): sentence-initial protection tokens rendered as bare numbers, even with the preservation instruction"
+      "models": [
+        "deepseek-flash",
+        "deepseek-v4-pro",
+        "deepseek/deepseek-v4-flash"
+      ],
+      "reason": "the best raw translation quality in the entire table (deepseek-flash: 77.10 chrF id->en \u2014 above Kagi and every other model \u2014 and 87.05 en->id) AND YET unusable here: production masks names into placeholder tokens before translating, and DeepSeek drops them in the production direction (id->en survival 9/10, 6/10, 7/10 \u2014 e.g. 'Ben and Wiwit suggest registering before the 15th' came back as '5 and 3 suggest that participants register\u2026'). chrF cannot see names; the Token survival toggle can."
     },
     {
-      "models": ["z-ai/glm-5.3-flash"],
+      "models": [
+        "z-ai/glm-5.3-flash"
+      ],
       "reason": "fails masked survival en->id (7/10); its endpoint also mandates reasoning"
     },
     {
-      "models": ["@cf/zai-org/glm-4.7-flash"],
+      "models": [
+        "@cf/zai-org/glm-4.7-flash"
+      ],
       "reason": "destroys masked names 0/10 with and without the instruction - must not be the outage failover"
     },
     {
-      "models": ["qwen-mt-flash", "qwen-mt-plus"],
+      "models": [
+        "qwen-mt-flash",
+        "qwen-mt-plus"
+      ],
       "reason": "fail id->en masked survival (2/10, 1/10); qwen-mt-lite passes raw but inherits the family's non-raisable caps and single-vendor retirement risk"
     }
   ],
