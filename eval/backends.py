@@ -259,7 +259,15 @@ class OpenAICompatBackend:
             # in a {"data": {...}} envelope; unwrap it before reading choices
             if isinstance(body, dict) and "choices" not in body and isinstance(body.get("data"), dict):
                 body = body["data"]
-            out.append(body["choices"][0]["message"]["content"].strip())
+            message = body["choices"][0]["message"]
+            content = (message.get("content") or "").strip()
+            if not content:
+                finish = body["choices"][0].get("finish_reason")
+                raise RuntimeError(
+                    f"{self.model}: empty content (finish_reason={finish}) — a reasoning model "
+                    f"likely spent the whole --max-tokens budget on reasoning; raise --max-tokens"
+                )
+            out.append(content)
         return Result(out, time.perf_counter() - started - waited, self.model, "openai-compat")
 
 

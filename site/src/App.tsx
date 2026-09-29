@@ -5,6 +5,7 @@ import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CategorySection } from '@/components/category-section'
 import { RunsTable, type TableMode } from '@/components/runs-table'
+import { AllFailuresSection, PromptsSection, RecommendationSection } from '@/components/guidance-sections'
 import { data, directionLabel, formatDateTime } from '@/lib/data'
 
 const REPO_URL = 'https://github.com/bevry-vibes/translation-comparison-en-id'
@@ -69,6 +70,7 @@ export default function App() {
   return (
     <div className="mx-auto min-h-dvh w-full max-w-6xl space-y-6 px-4 py-8 sm:px-6">
       <Header />
+      <RecommendationSection recommendation={data.recommendation} />
       <Tabs defaultValue={data.directions[0]?.direction} className="gap-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <TabsList className="h-9">
@@ -109,9 +111,11 @@ export default function App() {
               />
             </section>
             <CategorySection direction={direction} />
+            <AllFailuresSection survival={direction.token_survival} />
           </TabsContent>
         ))}
       </Tabs>
+      <PromptsSection prompts={data.prompts} />
       <Footer />
     </div>
   )

@@ -7,6 +7,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator'
+import { CopyButton } from '@/components/guidance-sections'
 import { formatDateTime, heatText, renderTokens } from '@/lib/data'
 import type { RunRow, Sample } from '@/types'
 
@@ -78,6 +79,58 @@ function CategoryBars({ categories }: { categories: Record<string, number> }) {
   )
 }
 
+function Replicate({ run }: { run: RunRow }) {
+  const r = run.replication
+  return (
+    <section>
+      <h3 className="mb-2 text-sm font-semibold">
+        Replicate this run{' '}
+        <span className="font-normal text-muted-foreground">— exact prompt, gateway flags included</span>
+      </h3>
+      <div className="space-y-1.5">
+        <div className="flex items-start justify-between gap-2">
+          <pre className="flex-1 overflow-x-auto rounded-lg border bg-card/50 p-3 font-mono text-xs whitespace-pre-wrap">
+            {r.command}
+          </pre>
+          <CopyButton text={r.command} />
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {r.base_url && (
+            <Badge variant="outline" className="font-mono text-[10px]">
+              {r.base_url}
+            </Badge>
+          )}
+          {r.key_env && (
+            <Badge variant="outline" className="font-mono text-[10px]">
+              ${r.key_env}
+            </Badge>
+          )}
+          {r.max_tokens != null && (
+            <Badge variant="outline" className="font-mono text-[10px]">
+              max_tokens {r.max_tokens}
+            </Badge>
+          )}
+          {r.chat_kwargs && (
+            <Badge variant="outline" className="font-mono text-[10px]">
+              {JSON.stringify(r.chat_kwargs)}
+            </Badge>
+          )}
+        </div>
+        {r.request_body && (
+          <pre className="overflow-x-auto rounded-lg border bg-card/50 p-3 font-mono text-xs whitespace-pre-wrap">
+            {JSON.stringify(r.request_body, null, 2)}
+          </pre>
+        )}
+        {r.notes?.map((note) => (
+          <p key={note} className="text-xs text-muted-foreground">
+            • {note}
+          </p>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 function Meta({ label, value }: { label: string; value: string }) {
   return (
     <div>
@@ -122,6 +175,10 @@ export function SamplesDialog({
           <Meta label="s/sentence" value={run.seconds_per_sentence?.toFixed(3) ?? '—'} />
           <Meta label="Timestamp" value={run.timestamp ? formatDateTime(run.timestamp) : '—'} />
         </dl>
+
+        <Separator />
+
+        <Replicate run={run} />
 
         <Separator />
 
