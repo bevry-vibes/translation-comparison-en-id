@@ -16,6 +16,7 @@ import {
   ENGINE_SYSTEM,
 } from "../../eval/deno/prompts.ts";
 import { BACKENDS, openaiProviderFor } from "../../eval/deno/providers.ts";
+import { priceOf, type Cost } from "./pricing.ts";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 const RESULTS = ROOT + "results/";
@@ -178,6 +179,7 @@ function runRow(payload: RunPayload) {
     samples_capped: capped,
     samples,
     replication: replicationFor(payload),
+    cost: priceOf(payload.model) ?? null,
     best: {} as Record<string, boolean>,
   };
 }
@@ -191,12 +193,16 @@ interface SurvivalRowLike {
   total: number;
 }
 
-function survivalRows(): (SurvivalRowLike & { provider: string; hosted: boolean })[] {
+function survivalRows(): (SurvivalRowLike & {
+  provider: string;
+  hosted: boolean;
+  cost: Cost | null;
+})[] {
   const path = RESULTS + "token-survival.json";
   const data = JSON.parse(Deno.readTextFileSync(path)) as { runs: SurvivalRowLike[] };
   return data.runs.map((row) => {
     const { provider, hosted } = providerOf({ label: row.label, backend: row.backend } as RunPayload);
-    return { ...row, provider, hosted };
+    return { ...row, provider, hosted, cost: priceOf(row.model) ?? null };
   });
 }
 

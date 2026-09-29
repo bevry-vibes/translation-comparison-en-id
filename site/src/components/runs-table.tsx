@@ -95,6 +95,27 @@ function metricCell(run: RunRow, key: 'chrf' | 'chrfpp' | 'bleu') {
   )
 }
 
+function formatCost(value: number) {
+  if (value >= 1) return `$${value.toFixed(2)}`
+  return `$${value.toFixed(4).replace(/0+$/, '').replace(/\.$/, '')}`
+}
+
+function costCell(cost: RunRow['cost']) {
+  if (!cost) return <span className="text-muted-foreground">—</span>
+  const text =
+    cost.unit === 'M characters'
+      ? `${formatCost(cost.input)} /M chars`
+      : `${formatCost(cost.input)} / ${cost.output === null ? '—' : formatCost(cost.output)}`
+  return (
+    <span
+      className="font-mono text-[12px] tabular-nums text-foreground/80"
+      title={`${cost.source} — per ${cost.unit}, input${cost.output === null ? '' : ' then output'}`}
+    >
+      {text}
+    </span>
+  )
+}
+
 /** best masked variant of a model: most surviving segments, then higher restored chrF */
 function bestVariant(rows: SurvivalRow[]): SurvivalRow | null {
   if (rows.length === 0) return null
@@ -204,6 +225,15 @@ export function RunsTable({
             {r.seconds_per_sentence?.toFixed(3) ?? '—'}
           </span>
         ),
+      },
+      {
+        key: 'cost',
+        label: 'Cost $/M',
+        numeric: true,
+        title:
+          'List price per million tokens, input then output (Kagi: characters). Sources: models.dev, provider catalogues',
+        value: (r) => (r.cost ? r.cost.input + (r.cost.output ?? 0) : Number.POSITIVE_INFINITY),
+        render: (r) => costCell(r.cost),
       },
       {
         key: 'file',
@@ -329,6 +359,15 @@ export function RunsTable({
         )
       },
     },
+    {
+      key: 'cost',
+      label: 'Cost $/M',
+      numeric: true,
+      title:
+        'List price per million tokens, input then output (Kagi: characters). Sources: models.dev, provider catalogues',
+      value: (r) => (r.cost ? r.cost.input + (r.cost.output ?? 0) : Number.POSITIVE_INFINITY),
+      render: (r) => costCell(r.cost),
+    },
   ]
 
   const columns = mode === 'survival' ? survivalColumns : qualityColumns
@@ -417,7 +456,10 @@ export function RunsTable({
           <>
             <span className="font-semibold text-emerald-500 dark:text-emerald-400">Green values</span>
             {` `}mark the best score per column. Latency is only comparable within hosted vs local
-            backends. Click any row for its best/worst samples.
+            backends. Cost is list price per million tokens, input then output — aggregated from{' '}
+            <span className="font-mono">models.dev</span> and the provider catalogues (Kagi bills
+            per million characters; local rows are free). Hover the cost for its source. Click any
+            row for its best/worst samples.
           </>
         ) : (
           <>

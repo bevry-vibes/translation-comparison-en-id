@@ -140,7 +140,7 @@ export function PromptsSection({ prompts }: { prompts: Record<string, PromptTemp
         <CardTitle className="text-base">Prompts &amp; replication</CardTitle>
         <CardDescription>
           The verbatim prompt templates the harness sends, generated from{' '}
-          <span className="font-mono text-foreground/80">eval/backends.py</span> — this page
+          <span className="font-mono text-foreground/80">eval/deno/prompts.ts</span> — this page
           renders whatever the harness actually sent, never a hand-copied copy. Every run
           dialog carries a ready-to-run replication command.
         </CardDescription>

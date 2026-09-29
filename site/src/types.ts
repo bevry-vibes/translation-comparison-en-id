@@ -17,6 +17,14 @@ export interface Replication {
   notes?: string[]
 }
 
+/** list pricing, USD per million tokens (or characters for Kagi) */
+export interface Cost {
+  input: number
+  output: number | null
+  unit: 'M tokens' | 'M characters'
+  source: string
+}
+
 export interface RunRow {
   label: string
   file: string
@@ -36,6 +44,7 @@ export interface RunRow {
   samples_capped: boolean
   samples: Sample[]
   replication: Replication
+  cost: Cost | null
   best: { chrf?: boolean; chrfpp?: boolean; bleu?: boolean; speed?: boolean }
 }
 
@@ -61,6 +70,7 @@ export interface SurvivalRow {
   restored_bleu: number
   failures: SurvivalFailure[]
   timestamp: string | null
+  cost: Cost | null
 }
 
 export interface DirectionData {
