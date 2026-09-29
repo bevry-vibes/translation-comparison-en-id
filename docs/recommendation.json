@@ -1,6 +1,6 @@
 {
   "updated": "2026-09-29",
-  "summary": "qwen-mt-turbo (the production translator) retires 2026-10-10. A successor must pass strict masked-name token survival, match turbo-class quality, and fit the 5-minute cron budget. The 2026-09-29 off-QwenCloud provider sweep re-measured 12 open-weight models on both directions plus the masked set. Disqualified below does NOT mean bad at translation \u2014 the DeepSeek models are the best pure translators measured \u2014 it means unusable for THIS production pipeline, which masks people's names before translation and restores them afterwards.",
+  "summary": "qwen-mt-turbo (the production translator) retires 2026-10-10. A successor must pass strict masked-name token survival, match turbo-class quality, and fit the 5-minute cron budget. The 2026-09-29 off-QwenCloud provider sweep re-measured 12 open-weight models on both directions plus the masked set. Disqualified below does NOT mean bad at translation \u2014 the DeepSeek models are the best pure translators measured \u2014 it means unusable for THIS production pipeline, which masks people's names before translation and restores them afterwards. The 2026-09-29 identity spike (docs/identity-spike.md) then showed the PUA token scheme itself breaks weak tokenizers: switching the masks to ASCII brackets [[n]] fixes glm-4.7-flash, glm-5.3-flash and nemotron outright, so masking-scheme migration + re-measurement is the next step.",
   "primary": {
     "model": "qwen/qwen3-235b-a22b-2507",
     "provider": "OpenRouter",
@@ -40,19 +40,19 @@
         "deepseek-v4-pro",
         "deepseek/deepseek-v4-flash"
       ],
-      "reason": "the best raw translation quality in the entire table (deepseek-flash: 77.10 chrF id->en \u2014 above Kagi and every other model \u2014 and 87.05 en->id) AND YET unusable here: production masks names into placeholder tokens before translating, and DeepSeek drops them in the production direction (id->en survival 9/10, 6/10, 7/10 \u2014 e.g. 'Ben and Wiwit suggest registering before the 15th' came back as '5 and 3 suggest that participants register\u2026'). chrF cannot see names; the Token survival toggle can."
+      "reason": "the best raw translation quality in the entire table (deepseek-flash: 77.10 chrF id->en \u2014 above Kagi and every other model \u2014 and 87.05 en->id) AND YET unusable here: production masks names into placeholder tokens before translating, and DeepSeek drops them in the production direction (id->en survival 9/10, 6/10, 7/10 \u2014 e.g. 'Ben and Wiwit suggest registering before the 15th' came back as '5 and 3 suggest that participants register\u2026'). chrF cannot see names; the Token survival toggle can. Caveat from the identity spike: deepseek-v4-flash passed all six masking schemes 20/20 under the same preservation clause, so the drops are not yet reproduced \u2014 re-verify with a fresh masked run before treating this as model truth (docs/identity-spike.md)."
     },
     {
       "models": [
         "z-ai/glm-5.3-flash"
       ],
-      "reason": "fails masked survival en->id (7/10); its endpoint also mandates reasoning"
+      "reason": "fails masked survival en->id (7/10); its endpoint also mandates reasoning. The identity spike traced the mechanism: its tokenizer cannot emit PUA placeholder characters and renders them as bare digits (8/10) \u2014 with ASCII brackets [[n]] it survives 10/10, so it is scheme-broken, not identity-broken."
     },
     {
       "models": [
         "@cf/zai-org/glm-4.7-flash"
       ],
-      "reason": "destroys masked names 0/10 with and without the instruction - must not be the outage failover"
+      "reason": "mangles PUA placeholder tokens into bare digits or invented <n> tags (14/20) and drops curly-brace markers occasionally (19/20) \u2014 must not be the outage failover on the current PUA scheme. With ASCII markers ([[n]], NME{n}X, <name-n>) it survives 20/20, so the failure is the scheme, not the model (docs/identity-spike.md)."
     },
     {
       "models": [
@@ -70,6 +70,7 @@
   "history": [
     "2026-09-28: qwen-mt-flash recommended on plain chrF alone",
     "2026-09-29 (morning): superseded by masked-name token survival; qwen-flash + engine-preserve picked as the QwenCloud interim",
-    "2026-09-29 (day): off-QwenCloud provider sweep; qwen3-235b-a22b-2507 on OpenRouter becomes the primary recommendation"
+    "2026-09-29 (day): off-QwenCloud provider sweep; qwen3-235b-a22b-2507 on OpenRouter becomes the primary recommendation",
+    "2026-09-29 (evening): identity spike; an earlier 'destroys masked names 0/10' verdict for glm-4.7-flash was a harness parsing bug, and the real finding is that the PUA token scheme itself breaks GLM-family and nemotron tokenizers \u2014 ASCII brackets [[n]] fix them outright; next step is migrating the mask scheme and re-measuring survival (docs/identity-spike.md)"
   ]
 }
