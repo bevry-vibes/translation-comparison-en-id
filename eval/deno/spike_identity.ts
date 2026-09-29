@@ -196,6 +196,7 @@ async function translate(
   system: string,
   source: string,
   cloudflareChat = false,
+  maxTokens = 4096,
 ): Promise<string> {
   let url = `${base_url}/chat/completions`;
   const messages = [
@@ -207,7 +208,7 @@ async function translate(
     messages,
     temperature: 0,
     stream: false,
-    max_tokens: 4096,
+    max_tokens: maxTokens,
   };
   if (cloudflareChat) {
     // OpenAI-compatible surface: /ai/run returns empty content for GLM
@@ -303,6 +304,9 @@ async function main() {
     ? SCHEMES
     : SCHEMES.filter((s) => schemeArg.split(",").includes(s.id));
   const runs = parseInt(opts.runs ?? "1", 10);
+  // OpenRouter's 402 preflight charges max_tokens against remaining credits —
+  // lower it when the account runs dry (translations are ~100 tokens)
+  const maxTokens = parseInt(opts["max-tokens"] ?? "4096", 10);
 
   const entries: MaskedEntry[] = Deno.readTextFileSync(
     ROOT + "data/masked.jsonl",
@@ -380,6 +384,7 @@ async function main() {
               systemPrompt(scheme, entry.src, entry.tgt),
               source,
               opts["cloudflare-chat"] === "true",
+              maxTokens,
             );
             break;
           } catch (e) {
