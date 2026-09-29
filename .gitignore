@@ -70,3 +70,6 @@ data/*.zip
 # this project: docs/ is source content here, not generated output
 !docs/
 !docs/**
+
+# this project: ZCode app-local state (plans, caches)
+.zcode/
