@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --allow-net --allow-env --allow-read
+#!/usr/bin/env -S deno run --allow-net --allow-env --allow-read --allow-write
 /** Identity-permanence spike: which masking scheme keeps protected names
  * intact through a given provider?
  *
@@ -20,12 +20,58 @@ const ROOT = new URL("../../", import.meta.url).pathname;
 const TOKEN_START = "\uE000";
 const TOKEN_END = "\uE001";
 
+/** write the site monitor's progress file (the shape scripts/lib.sh emits) so
+ * the ghostty-web terminal shows live spike progress + ETA */
+function emitProgress(
+  model: string,
+  status: string,
+  done: number,
+  total: number,
+  current: string,
+) {
+  const dir = ROOT + "site/public/data";
+  const now = new Date().toISOString().slice(0, 19) + "+00:00";
+  try {
+    Deno.mkdirSync(dir, { recursive: true });
+    let started = now;
+    try {
+      started = Deno.readTextFileSync(dir + "/.spike-started").trim() || now;
+    } catch {
+      Deno.writeTextFileSync(dir + "/.spike-started", now);
+    }
+    Deno.writeTextFileSync(
+      dir + "/refresh-status.json",
+      JSON.stringify(
+        {
+          task: `identity-spike (${model})`,
+          status,
+          started_at: started,
+          updated_at: now,
+          started_at_ms: Date.parse(started),
+          updated_at_ms: Date.now(),
+          done,
+          total,
+          current,
+        },
+        null,
+        1,
+      ) + "\n",
+    );
+  } catch (e) {
+    console.warn(`[warn] progress emit failed: ${e}`);
+  }
+}
+
 interface MaskedEntry {
   id: string;
   src: string;
   tgt: string;
   plain: string;
   names: { form: string; index: number; count: number }[];
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 interface Scheme {
@@ -164,34 +210,67 @@ async function translate(
     max_tokens: 4096,
   };
   if (cloudflareChat) {
-    // Workers AI run path: account/model ride the URL, message-array body
+    // OpenAI-compatible surface: /ai/run returns empty content for GLM
+    // reasoning models (byte-identical requests succeed via /ai/v1), so post
+    // the standard chat-completions shape to the compat endpoint instead
     const accountId = Deno.env.get("CLOUDFLARE_ACCOUNT_ID") ?? "";
-    url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`;
-    requestBody = { messages, stream: false };
+    url =
+      `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/v1/chat/completions`;
+    requestBody = { model, messages, stream: false };
   }
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(requestBody),
-  });
+  if (Deno.env.get("SPIKE_DEBUG") === "1") {
+    console.error("REQ:", JSON.stringify(requestBody));
+  }
+  // providers enforce request-per-minute limits (Workers AI: 300/min default
+  // Text Generation, 20/min for paid-plan models). Honour 429 + Retry-After
+  // with dedicated waits instead of burning a caller attempt on them.
+  let response: Response;
+  for (let rateTry = 1; ; rateTry++) {
+    response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(requestBody),
+      // a hung provider call must not freeze the monitor feed
+      signal: AbortSignal.timeout(120_000),
+    });
+    if (response.status !== 429 || rateTry > 4) break;
+    const retryAfterS =
+      parseFloat(response.headers.get("retry-after") ?? "") || 5;
+    const waitMs = Math.min(retryAfterS, 60) * 1000 + Math.random() * 1_000;
+    console.warn(
+      `[rate] 429 from ${model}, waiting ${Math.round(waitMs / 1000)}s before retry`,
+    );
+    await sleep(waitMs);
+  }
   const payload = await response.json();
   if (!response.ok) {
     throw new Error(
       `HTTP ${response.status}: ${JSON.stringify(payload).slice(0, 200)}`,
     );
   }
-  const envelope = (cloudflareChat ? payload.result ?? {} : payload) as Record<string, unknown>;
-  const message = ((envelope.choices as Record<string, unknown>[] | undefined)?.[0] ?? {}) as Record<string, unknown>;
-  const content = (
+  const envelope = payload as Record<string, unknown>;
+  const message =
+    ((envelope.choices as Record<string, unknown>[] | undefined)?.[0] ??
+      {}) as Record<string, unknown>;
+  const content =
     (typeof message.content === "string" ? message.content : "").trim() ||
-    (typeof envelope.response === "string" ? envelope.response : "").trim()
-  );
+    (typeof envelope.response === "string" ? envelope.response : "").trim();
   if (!content) {
+    const reasoning = message.reasoning_content ?? message.reasoning;
     throw new Error(
-      `empty content (finish_reason=${(envelope.choices as Record<string, unknown>[] | undefined)?.[0]?.finish_reason})`,
+      `empty content (finish_reason=${
+        (envelope.choices as Record<string, unknown>[] | undefined)?.[0]
+          ?.finish_reason
+      }) message-keys=[${Object.keys(message).join(",")}] content-type=${
+        typeof message.content
+      } reasoning=${
+        typeof reasoning === "string"
+          ? `${reasoning.length}ch: ${JSON.stringify(reasoning.slice(0, 150))}`
+          : typeof reasoning
+      }`,
     );
   }
   return content;
@@ -224,97 +303,165 @@ async function main() {
     ROOT + "data/masked.jsonl",
   )
     .split("\n").filter(Boolean).map((line) => JSON.parse(line))
-    .filter((e: MaskedEntry) => e.src === (opts.direction ?? "id-en").split("-")[0] && e.tgt === (opts.direction ?? "id-en").split("-")[1]);
+    .filter((e: MaskedEntry) =>
+      e.src === (opts.direction ?? "id-en").split("-")[0] &&
+      e.tgt === (opts.direction ?? "id-en").split("-")[1]
+    );
+
+  // Workers AI documents 300 req/min for default-tier Text Generation models
+  // and 20 req/min for paid-plan models; --rpm caps request starts under
+  // either, --concurrency bounds in-flight requests, and the 429 +
+  // Retry-After backoff in translate() is the backstop.
+  const concurrency = Math.max(1, parseInt(opts.concurrency ?? "4", 10));
+  const rpm = Math.max(1, parseFloat(opts.rpm ?? "240"));
+  let lastStartMs = 0;
+  const rateGate = async () => {
+    for (;;) {
+      const now = Date.now();
+      const waitMs = lastStartMs + 60_000 / rpm - now;
+      if (waitMs <= 0) {
+        lastStartMs = now;
+        return;
+      }
+      await sleep(waitMs);
+    }
+  };
 
   console.log(
     `spike: ${model} @ ${base_url} | ${entries.length} id->en segments | schemes: ${
       schemes.map((s) => s.id).join(",")
-    }`,
+    } | concurrency ${concurrency} · cap ${rpm} rpm`,
   );
 
+  let inFlight = 0;
   for (const scheme of schemes) {
     const failures: Failure[] = [];
     let passed = 0;
     let attempted = 0;
     // every (run, segment) pair must survive — intermittent drops count as failures
+    const tasks: { run: number; entry: MaskedEntry }[] = [];
     for (let run = 0; run < runs; run++) {
-      for (const entry of entries) {
-        attempted++;
+      for (const entry of entries) tasks.push({ run, entry });
+    }
+    const progress = () =>
+      emitProgress(
+        model,
+        "running",
+        attempted,
+        tasks.length,
+        `${scheme.id}: ${attempted}/${tasks.length} done · ${inFlight} in flight`,
+      );
+    let cursor = 0;
+    const worker = async () => {
+      for (;;) {
+        const index = cursor++;
+        if (index >= tasks.length) return;
+        const { run, entry } = tasks[index];
+        await rateGate();
+        inFlight++;
+        progress();
         const { source, expected } = maskPlain(
           entry.plain,
           entry.names,
           scheme,
         );
-        let raw: string;
-        try {
-          raw = await translate(
-            base_url,
-            apiKey,
-            model,
-            systemPrompt(scheme, entry.src, entry.tgt),
-            source,  // spike: cloudflare-chat posts the run-path shape
-            opts["cloudflare-chat"] === "true",
-          );
-        } catch (e) {
-          failures.push({
-            id: `${entry.id}#r${run}`,
-            failures: [String(e).slice(0, 160)],
-            raw: "",
-          });
-          continue;
-        }
-        const problems: string[] = [];
-        if (scheme.id === "real") {
-          for (const name of entry.names) {
-            const have = countFormOccurrences(raw, name.form);
-            if (have < name.count) {
-              problems.push(
-                `name lost: ${name.form} expected ${name.count}, found ${have}`,
-              );
-            }
-          }
-        } else {
-          const got = countMatches(raw, scheme.marker);
-          for (const [index, count] of expected) {
-            const found = got.get(index) ?? 0;
-            if (found < count) {
-              problems.push(
-                `marker ${
-                  scheme.token(index)
-                } missing: expected ${count}, found ${found}`,
-              );
-            }
-          }
-          for (const [index, count] of got) {
-            if (!expected.has(index)) {
-              problems.push(`renumbered marker index ${index} (x${count})`);
-            }
-          }
-          // restoration must bring every name back
-          const restored = raw.replace(scheme.marker, (_m, digits) => {
-            const name = entry.names.find((n) =>
-              n.index === parseInt(digits, 10)
+        let raw: string | undefined;
+        for (let attempt = 1; attempt <= 2; attempt++) {
+          try {
+            raw = await translate(
+              base_url,
+              apiKey,
+              model,
+              systemPrompt(scheme, entry.src, entry.tgt),
+              source,
+              opts["cloudflare-chat"] === "true",
             );
-            return name ? name.form : _m;
-          });
-          for (const name of entry.names) {
-            const have = countFormOccurrences(restored, name.form);
-            if (have < name.count) {
-              problems.push(
-                `name lost after restore: ${name.form} expected ${name.count}, found ${have}`,
-              );
+            break;
+          } catch (e) {
+            if (attempt === 2) {
+              failures.push({
+                id: `${entry.id}#r${run}`,
+                failures: [String(e).slice(0, 160)],
+                raw: "",
+              });
+            } else {
+              // empty content and timeouts proved transient — the identical
+              // request succeeds minutes later — so back off before retrying
+              await sleep(4_000 + Math.random() * 5_000);
             }
           }
         }
-        if (problems.length === 0) passed++;
-        else {failures.push({
-            id: `${entry.id}#r${run}`,
-            failures: problems,
-            raw,
-          });}
+        inFlight--;
+        attempted++;
+        if (raw !== undefined) {
+          const problems: string[] = [];
+          if (scheme.id === "real") {
+            for (const name of entry.names) {
+              const have = countFormOccurrences(raw, name.form);
+              if (have < name.count) {
+                problems.push(
+                  `name lost: ${name.form} expected ${name.count}, found ${have}`,
+                );
+              }
+            }
+          } else {
+            const got = countMatches(raw, scheme.marker);
+            for (const [index, count] of expected) {
+              const found = got.get(index) ?? 0;
+              if (found < count) {
+                problems.push(
+                  `marker ${
+                    scheme.token(index)
+                  } missing: expected ${count}, found ${found}`,
+                );
+              }
+            }
+            for (const [index, count] of got) {
+              if (!expected.has(index)) {
+                problems.push(`renumbered marker index ${index} (x${count})`);
+              }
+            }
+            // restoration must bring every name back
+            const restored = raw.replace(scheme.marker, (_m, digits) => {
+              const name = entry.names.find((n) =>
+                n.index === parseInt(digits, 10)
+              );
+              return name ? name.form : _m;
+            });
+            for (const name of entry.names) {
+              const have = countFormOccurrences(restored, name.form);
+              if (have < name.count) {
+                problems.push(
+                  `name lost after restore: ${name.form} expected ${name.count}, found ${have}`,
+                );
+              }
+            }
+          }
+          if (problems.length === 0) passed++;
+          else {
+            failures.push({
+              id: `${entry.id}#r${run}`,
+              failures: problems,
+              raw,
+            });
+          }
+        }
+        progress();
       }
-    }
+    };
+    await Promise.all(
+      Array.from({ length: Math.min(concurrency, tasks.length) }, worker),
+    );
+    // parallel completion order is nondeterministic — report stably
+    failures.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
     const verdict = passed === attempted ? "PASS" : "FAIL";
+    emitProgress(
+      model,
+      verdict === "PASS" ? "complete" : "failed",
+      attempted,
+      attempted,
+      `${scheme.id} ${passed}/${attempted}`,
+    );
     console.log(`\n${scheme.id.padEnd(11)} ${passed}/${attempted} ${verdict}`);
     for (const failure of failures) {
       console.log(`  ${failure.id}: ${failure.failures.join(" | ")}`);
