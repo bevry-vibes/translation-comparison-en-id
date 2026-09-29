@@ -1,15 +1,17 @@
 #!/usr/bin/env -S deno run --allow-read --allow-write
 /** Score token survival for masked-name translation runs.
  *
- * Ported from the original python `eval/token_survival.py`. For every
- * hypothesis (the raw provider output on masked text) it checks, mirroring
- * patipeaceplace's name-protection contract (`protectTerms` / `restoreTerms` /
- * `assertNamesSurvived`):
+ * Mirrors patipeaceplace's name-protection contract (`protectTerms` /
+ * `restoreTerms` / `assertNamesSurvived`) for the bracket-marker scheme
+ * ([[n]] since 2026-09-29; the PUA-token era is archived under
+ * results/archive/masked-pua-2026-09-29/). For every hypothesis (the raw
+ * provider output on masked text) it checks:
  *
- * 1. every expected placeholder token (U+E000 + <index> + U+E001) is present at
- *    least as often as the source carried it;
- * 2. no token was renumbered and no stray private-use characters remain;
- * 3. after restoring tokens to their name forms, every name still occurs at
+ * 1. every expected marker ([[n]]) is present at least as often as the source
+ *    carried it;
+ * 2. no marker was renumbered, and no stray/unbalanced bracket markers remain
+ *    (mangled or half-deleted markers);
+ * 3. after restoring markers to their name forms, every name still occurs at
  *    least as often as in the source.
  *
  * A segment passes only when all three hold; the run verdict is strict. Writes
@@ -21,10 +23,10 @@
 import { perSentenceChrf, scoreAll } from "./metrics.ts";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
-const TOKEN_START = "\uE000";
-const TOKEN_END = "\uE001";
-const TOKEN_RE = new RegExp(`${TOKEN_START}(\\d+)${TOKEN_END}`, "g");
-const TOKEN_CHARS_RE = /[\uE000\uE001]/g;
+const TOKEN_RE = /\[\[(\d+)\]\]/g;
+const MARKER_OPEN_RE = /\[\[/g;
+const MARKER_CLOSE_RE = /\]\]/g;
+const MARKER_CHARS_RE = /\[\[|\]\]/g;
 
 interface TruthName {
   index: number;
@@ -90,7 +92,7 @@ function scoreSegment(hypothesis: string, truth: TruthEntry): SegmentScore {
     const found = counts.get(index) ?? 0;
     if (found < name.count) {
       failures.push(
-        `missing token ${TOKEN_START}${index}${TOKEN_END} (${name.form}): expected ${name.count}, found ${found}`,
+        `missing token [[${index}]] (${name.form}): expected ${name.count}, found ${found}`,
       );
     }
   }
@@ -99,15 +101,16 @@ function scoreSegment(hypothesis: string, truth: TruthEntry): SegmentScore {
       failures.push(`renumbered/unknown token index ${index}`);
     }
   }
-  // Well-formed tokens carry exactly two private-use characters; anything
-  // beyond them is a stray (mangled or half-deleted token).
-  const puaChars = (hypothesis.match(TOKEN_CHARS_RE) ?? []).length;
+  // Well-formed markers carry exactly one opener and one closer each; anything
+  // beyond them is a stray (mangled or half-deleted marker).
+  const openers = (hypothesis.match(MARKER_OPEN_RE) ?? []).length;
+  const closers = (hypothesis.match(MARKER_CLOSE_RE) ?? []).length;
   const wellFormed = [...counts.values()].reduce((a, b) => a + b, 0);
-  if (puaChars > 2 * wellFormed) {
+  if (openers > wellFormed || closers > wellFormed) {
     failures.push(
-      `stray private-use characters: ${
-        puaChars - 2 * wellFormed
-      } beyond the ${wellFormed} well-formed tokens`,
+      `stray bracket markers: ${openers - wellFormed} unclosed / ${
+        closers - wellFormed
+      } unopened beyond the ${wellFormed} well-formed markers`,
     );
   }
 
@@ -118,8 +121,8 @@ function scoreSegment(hypothesis: string, truth: TruthEntry): SegmentScore {
   for (const index of unknown) {
     failures.push(`unrestorable token index ${index} survived restoration`);
   }
-  if (TOKEN_CHARS_RE.test(restored)) {
-    failures.push("protection token characters remained after restoration");
+  if (MARKER_CHARS_RE.test(restored)) {
+    failures.push("protection markers remained after restoration");
   }
   for (const name of expected.values()) {
     const have = countFormOccurrences(restored, name.form);

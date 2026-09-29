@@ -88,7 +88,7 @@ for entry in "${MODELS[@]}"; do
     progress_emit "provider-sweep ($PROVIDER, ${MODE:-plain})" running "$LEG" "$TOTAL_LEGS" "$name ($SRC->$TGT)"
     deno run -A eval/deno/run_eval.ts --backend openai --model "$model" \
       --base-url "$url" --api-key "$key" \
-      --chat-kwargs-json "$kwargs" --max-tokens 1024 \
+      --chat-kwargs-json "$kwargs" --max-tokens 4096 \
       --prompt-style "$PROMPT" "${TESTSET_ARGS[@]}" \
       --src "$SRC" --tgt "$TGT" --name "$name$NAME_SUFFIX"
   done

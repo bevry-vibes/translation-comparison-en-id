@@ -12,8 +12,8 @@ first.
 | --- | --- |
 | `results/<label>.json` | one benchmark run: a backend translating the test set in one direction, with corpus metrics, per-category chrF and every source/reference/hypothesis sample |
 | `results/token-survival.json` | the scored masked-name matrix for all `*-masked-*.json` runs, emitted by `eval/deno/token_survival.ts` (the only scoring implementation) |
-| `results/archive/` | results that must not be compared against live ones: `testset-v1/` (14-segment en→id runs — the test set is now 78/78, see below), `client-parity/` (one-off same-backend client comparisons), `old-testset/` (runs against test sets that no longer exist) |
-| `site/src/data/results.json` | the joined dataset the site renders — run rows sorted per direction with best-per-column flags, category tables, the survival matrix with per-segment failures. Built by `eval/build_site_data.py` |
+| `results/archive/` | results that must not be compared against live ones: `testset-v1/` (14-segment en→id runs — the test set is now 78/78, see below), `client-parity/` (one-off same-backend client comparisons), `old-testset/` (runs against test sets that no longer exist), `masked-pua-2026-09-29/` (masked-name runs against the retired private-use token scheme) |
+| `site/src/data/results.json` | the joined dataset the site renders — run rows sorted per direction with best-per-column flags, category tables, the survival matrix with per-segment failures. Built by `site/tools/build_data.ts` |
 
 ## Field dictionary: a run JSON
 
@@ -36,7 +36,10 @@ class), `best` (per-column best flags within a direction), `samples_capped`
    `results/archive/testset-v1/` and must never be ranked against v2 rows.
 2. **Token survival is a different measurement, not a column of the same run.** Survival rows
    come from the separate 10-segment masked-name set (`data/masked.jsonl`: names wrapped in
-   `U+E000 + index + U+E001`), usually with the `engine-preserve` prompt, joined to main-table
+   `[[index]]` bracket markers — ASCII since the 2026-09-29 identity spike
+   (`docs/identity-spike.md`), because weak tokenizers mangle private-use characters; the
+   PUA-token era is archived under `results/archive/masked-pua-2026-09-29/` and its rows are
+   not comparable), usually with the `engine-preserve` prompt, joined to main-table
    rows **by model id**. A model can have several survival variants (different prompts).
    `restored_chrf` is measured against the masked-set references — a secondary hint, never a
    quality rank. Verdicts are strict: one dropped name fails the run.
@@ -73,7 +76,9 @@ After any new run: `deno run -A eval/deno/token_survival.ts` (if masked runs cha
 Gotchas the hard way:
 
 - **OpenRouter preflights credits against the model's full output ceiling** unless
-  `--max-tokens` is set → HTTP 402 on a key with plenty of balance. The sweeps send 1024.
+  `--max-tokens` is set → HTTP 402 on a key with plenty of balance. The sweeps send 4096 so
+  reasoning-mandatory models don't truncate (1024 cost DeepSeek real token drops before the
+  identity spike traced it).
 - **Gateway reasoning switches**: OpenRouter `{"reasoning":{"enabled":false}}`, DeepSeek
   `{"thinking":{"type":"disabled"}}` (via `--chat-kwargs-json`). glm-5.3-flash's endpoint
   mandates reasoning — it runs with it on (billed, but not leaked into content).
@@ -85,7 +90,7 @@ Gotchas the hard way:
   black-holes batch runs — single requests work; do not use it for sweeps.
 - **Prompt styles** (see the site's Prompts section for verbatim text): `engine` = the
   production translation-engine system instruction + raw source as the user message;
-  `engine-preserve` = `engine` + an explicit keep-the-`U+E000<digits>U+E001`-tokens-verbatim
+  `engine-preserve` = `engine` + an explicit keep-the-`[[n]]`-markers-verbatim
   clause (required for masked segments); `none` = raw text for dedicated NMT (qwen-mt family
   via `translation_options`); `translate_gemma`/`hymt2`/`generic` = per-family templates.
 - **temperature 0, sequential per-segment, warmup before timing** — the harness does this; keep

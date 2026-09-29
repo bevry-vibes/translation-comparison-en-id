@@ -330,7 +330,17 @@ async function translate(
     for (const text of texts) {
       const body = backend === "cloudflare"
         ? { text, source_lang: src, target_lang: tgt }
-        : { messages: buildMessages(text, src, tgt, "engine"), stream: false };
+        : {
+          messages: buildMessages(
+            text,
+            src,
+            tgt,
+            // honour --prompt-style: the metadata records it, so the request
+            // must carry it (masked-preserve runs used to silently send engine)
+            opts["prompt-style"] ?? "engine",
+          ),
+          stream: false,
+        };
       const response = await client.post(path, { body }) as Record<
         string,
         unknown

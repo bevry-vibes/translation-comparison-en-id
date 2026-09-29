@@ -61,12 +61,12 @@ export const ENGINE_SYSTEM = (src: string, tgt: string) =>
   `preserving paragraph breaks. No notes, no reasoning, no alternatives.`;
 
 /** ENGINE_SYSTEM plus an explicit placeholder-preservation clause for masked
- * segments (patipeaceplace `protectTerms`). */
+ * segments (patipeaceplace `protectTerms`). ASCII brackets since the 2026-09-29
+ * identity spike: private-use tokens break weak tokenizers (they render as bare
+ * digits), [[n]] survived every measured model. */
 export const ENGINE_PRESERVE_SYSTEM = (src: string, tgt: string) =>
   ENGINE_SYSTEM(src, tgt) +
-  " Placeholder tokens of the form \uE000<digits>\uE001 mark protected names: " +
-  "copy each token exactly as written, never translate, reorder, renumber, " +
-  "merge, split, or drop tokens.";
+  " Bracketed markers like [[0]] or [[3]] mark protected names: copy each marker exactly as written, never translate, reorder, renumber, merge, split, or drop markers.";
 
 export interface ChatMessage {
   role: "system" | "user";

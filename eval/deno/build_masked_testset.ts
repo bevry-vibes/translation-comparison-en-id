@@ -1,15 +1,21 @@
 #!/usr/bin/env -S deno run --allow-net --allow-read --allow-write
 /** Build the token-survival test set: name-heavy segments with production-style
- * name masking (patipeaceplace auto-translate `protectTerms`). Ported 1:1 from
- * the original python `eval/build_masked_testset.py`; the glossary order is
- * longest-form-first (production `buildPeoplePairs`), self-mapping, index =
- * glossary position.
+ * name masking (patipeaceplace auto-translate `protectTerms`). The glossary
+ * order is longest-form-first (production `buildPeoplePairs`), self-mapping,
+ * index = glossary position.
+ *
+ * Mask scheme: ASCII brackets [[n]] since 2026-09-29 — the identity spike
+ * (docs/identity-spike.md) showed GLM-family and nemotron tokenizers cannot
+ * emit the previous private-use tokens (U+E000..U+E001) and mangle them into
+ * bare digits or invented tags, while [[n]] survives every measured model.
+ * The PUA-era test set lives on in results/archive/masked-pua-2026-09-29/.
  */
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 const OUT = ROOT + "data/masked.jsonl";
-const TOKEN_START = "\uE000";
-const TOKEN_END = "\uE001";
+
+/** one bracket marker at glossary index n */
+const token = (n: number) => `[[${n}]]`;
 
 const NAMES = ["Petrus", "Nanik", "Ben", "Tito", "Wiwit", "Peace Place Pati"];
 
@@ -170,10 +176,10 @@ function mask(
   let output = text;
   const found: { form: string; index: number; count: number }[] = [];
   for (const [index, form] of forms.entries()) {
-    const token = `${TOKEN_START}${index}${TOKEN_END}`;
+    const marker = token(index);
     const count = text.split(form).length - 1;
     if (count) found.push({ form, index, count });
-    output = output.replaceAll(form, token);
+    output = output.replaceAll(form, marker);
   }
   return { source: output, names: found };
 }
