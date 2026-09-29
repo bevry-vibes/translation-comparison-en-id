@@ -151,16 +151,47 @@ Confirmed decisions (session 2026-09-29):
     (frozen — live numbers live on the site); history sections ordered with their supersession
     links intact. Content otherwise preserved verbatim.
 
-### 7. Verify and ship
+### 7. Deno-only toolchain — Python dropped, Node dropped (amendment, approved 2026-09-29)
 
-22. Rebuild data flow end to end: `build_testset.py`, `build_masked_testset.py`, one smoke
-    scoring pass, `build_site_data.py` (now consuming survival JSON), `npm run build`,
-    `wrangler deploy`. Plus the Deno-client smoke run (its "prove it works" obligation, step 4).
-23. Browser verification pass over the deployed site: tabs, both modes, sorting, sample and
-    failure dialogs, the new methodology/prompts/recommendation segments.
-24. An agent-comprehension read-through: follow AGENTS.md → README → results/README.md → site
+Modelled on [agent-detect's website plan](../../agent-detect/.plans/1790666509289-website-registry-site.md):
+Deno is the only language and the only toolchain. Committed results do not regenerate — the
+Deno harness is parity-verified against them by construction and spot-check.
+
+22. **Harness port.** `eval/deno/run_eval.ts` is promoted to *the* harness: port the remaining
+    backends from `eval/backends.py` (OpenAI-compat with reasoning switches, `max_tokens` and
+    the Cline `{"data":…}` envelope; qwen-mt `translation_options`; Kagi client; Ollama), the
+    `engine`/`engine-preserve` prompt builders, the empty-content guard, both test sets, and a
+    port of the memguard **run lock** (one benchmark at a time). New
+    `eval/deno/token_survival.ts` replaces `eval/token_survival.py` (writes
+    `results/token-survival.json`). Metrics stay the existing Deno implementations
+    (parity-verified against sacrebleu when the client-parity rows were run).
+23. **Site pipeline.** Adopt the agent-detect layout: `site/deno.json` tasks (`data`, `build`,
+    `check`, `deploy`), `site/tools/build_data.ts` replaces `eval/build_site_data.py` (reads
+    `results/*.json`, `results/token-survival.json`, `docs/recommendation.json`; the prompt and
+    provider manifests port to TS), and `site/worker/index.ts` adds JSON routes
+    (`/index.json`, `/runs/<label>.json`, `/llms.txt`) with `env.ASSETS.fetch` fallback in
+    `wrangler.jsonc`. `site/public/data/` becomes generated-at-deploy (gitignored); the
+    committed `site/src/data/results.json` convention ends.
+24. **Node is not a project runtime.** Tasks invoke the npm tooling through Deno's npm
+    compatibility (`deno run -A npm:vite build`, `deno run -A npm:wrangler deploy`); if a
+    package will not run under Deno, fall back to `deno task` executing
+    `node_modules/.bin/<tool>` and record it in the plan — but no `.js`/`.mjs` source, no
+    `node` invocations, and no python anywhere.
+25. **Deletions.** `eval/*.py`, `eval/memguard.py` (after the lock port), `requirements.txt`,
+    `.venv`, the python branches of `scripts/lib.sh`, `python.md`; sweeps become `deno task`
+    calls. AGENTS.md drops the python skill reference and gains the Deno conventions.
+26. **Parity gate before deletion.** One smoke segment per backend through the Deno harness
+    must produce the same shape (and, for a model already measured, a matching score within
+    metric tolerance) as the committed Python-era results; only then delete.
+
+### 8. Verify and ship
+
+27. Browser verification pass over the deployed site: tabs, both modes, sorting, sample and
+    failure dialogs, the recommendation/prompts/replication/failures segments, and the new JSON
+    routes.
+28. An agent-comprehension read-through: follow AGENTS.md → README → results/README.md → site
     as a fresh agent would, and fix anything still ambiguous.
-25. Commits per logical chunk (conventional, trailer, 1Password-signed), push, deploy.
+29. Commits per logical chunk (conventional, trailer, 1Password-signed), push, deploy.
 
 ## Out of scope
 

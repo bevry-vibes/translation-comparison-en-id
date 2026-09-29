@@ -92,6 +92,19 @@
 >
 > keep deno client, but just prove it works, don't use it for measurements - as some consumers of this work with ts instead of python
 
+**16.** (plan amendment: Deno-only toolchain)
+
+> I've decided, drop all the python code and use deno code instead. We do not have to regenerate results, as there should be parity.
+>
+> The deno and wrangler impl should be similar to this plan from this other project
+> agent-detect/.plans/1790666509289-website-registry-site.md
+>
+> How will this impact this work? Were we using Cloudflare Worekrs or Cloudflare Pages or something else? Were we using node.js for the website?
+
+**17.**
+
+> Do it, revise our plan to incorporate that, and yeah to be explicit drop node.js drop python.
+
 ## Steering notes
 
 - Prompts 7–9 designed the current table UX (survival as a column mode joined by model, stable
@@ -105,6 +118,7 @@
   out-of-scope bullet meant (answered: the refactor phases need no benchmarking runs —
   committed data plus a smoke pass verifies them; only the parity phase re-runs models, and it
   re-runs the existing candidate set, adding no new candidates).
+- Prompt 16 asked for the impact of dropping python for deno (answered: Workers-with-assets stays, node was only the build toolchain, committed results stand); prompt 17 approved the pivot, explicitly dropping node.js and python, mirroring agent-detect's website plan.
 - Prompt 15 confirmed the parity phase and the out-of-scope production-switch, and reversed the
   Deno-harness deletion: `eval/deno/` stays as a kept-working TypeScript consumer path (smoke
   proven, never a measurement row source) because some consumers work in TS rather than python.
