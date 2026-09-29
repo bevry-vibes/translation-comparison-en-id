@@ -45,6 +45,39 @@ function SampleBlock({ sample }: { sample: Sample }) {
   )
 }
 
+function CategoryBars({ categories }: { categories: Record<string, number> }) {
+  const entries = Object.entries(categories).sort(([, a], [, b]) => a - b)
+  if (entries.length === 0) return null
+  return (
+    <section>
+      <h3 className="mb-2 text-sm font-semibold">
+        Category chrF <span className="font-normal text-muted-foreground">— weakest categories first</span>
+      </h3>
+      <div className="grid gap-x-8 gap-y-1.5 md:grid-cols-2">
+        {entries.map(([category, value]) => (
+          <div key={category} className="flex items-center gap-3">
+            <span className="w-32 shrink-0 truncate font-mono text-xs text-foreground/80" title={category}>
+              {category}
+            </span>
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full"
+                style={{ width: `${value}%`, backgroundColor: heatText(value) }}
+              />
+            </div>
+            <span
+              className="w-12 text-right font-mono text-xs tabular-nums"
+              style={{ color: heatText(value) }}
+            >
+              {value.toFixed(2)}
+            </span>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 function Meta({ label, value }: { label: string; value: string }) {
   return (
     <div>
@@ -71,7 +104,7 @@ export function SamplesDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
+      <DialogContent className="max-h-[85vh] w-[95vw] max-w-5xl sm:max-w-5xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-mono text-base">{run.model}</DialogTitle>
           <DialogDescription>
@@ -89,6 +122,10 @@ export function SamplesDialog({
           <Meta label="s/sentence" value={run.seconds_per_sentence?.toFixed(3) ?? '—'} />
           <Meta label="Timestamp" value={run.timestamp ? formatDateTime(run.timestamp) : '—'} />
         </dl>
+
+        <Separator />
+
+        <CategoryBars categories={run.chrf_by_category} />
 
         <Separator />
 
