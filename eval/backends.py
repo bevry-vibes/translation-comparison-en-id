@@ -110,6 +110,7 @@ def _post_chat_retry(url: str, payload: dict, headers: dict, timeout: int = 300)
     the socket timeout mid-sweep) and transient connection errors retry like 5xx."""
     waited = 0.0
     attempt = 0
+    error: Exception | None = None
     while True:
         call_started = time.perf_counter()
         try:
@@ -119,10 +120,13 @@ def _post_chat_retry(url: str, payload: dict, headers: dict, timeout: int = 300)
             retry_after = (exc.headers.get("Retry-After") or "").strip()
             wait = float(retry_after) if retry_after.replace(".", "", 1).isdigit() \
                 else min(2.0 * 2 ** attempt, 30.0)
+            error = exc
         except (TimeoutError, urllib.error.URLError) as exc:  # HTTPError is a URLError subclass: handled above
             transient, detail, wait = True, f"{type(exc).__name__}: {exc}", min(2.0 * 2 ** attempt, 30.0)
+            error = exc
         if not transient or attempt >= 5:
-            raise
+            assert error is not None
+            raise error
         waited += time.perf_counter() - call_started + wait
         print(f"[warn] {detail}; retry {attempt + 1} in {wait:.0f}s")
         time.sleep(wait)
@@ -207,12 +211,20 @@ class OpenAICompatBackend:
 
     def __init__(self, model: str, base_url: str = "http://127.0.0.1:1234/v1",
                  api_key: str = "not-needed", prompt_style: str = "generic",
-                 temperature: float = 0.0) -> None:
+                 temperature: float = 0.0, extra_payload: dict | None = None,
+                 max_tokens: int = 0) -> None:
         self.model = model
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.prompt_style = prompt_style
         self.temperature = temperature
+        # extra JSON merged into every chat request body (e.g. a gateway's
+        # reasoning-disable switch: {"reasoning": {"enabled": false}})
+        self.extra_payload = extra_payload or {}
+        # 0 = omit; gateways like OpenRouter preflight credit checks against the
+        # model's full output ceiling when max_tokens is absent and reject with
+        # 402 when the key cannot afford it
+        self.max_tokens = max_tokens
 
     @property
     def name(self) -> str:
@@ -235,11 +247,18 @@ class OpenAICompatBackend:
                 "temperature": self.temperature,
                 "stream": False,
             }
+            payload.update(self.extra_payload)
+            if self.max_tokens:
+                payload["max_tokens"] = self.max_tokens
             body, retry_waited = _post_chat_retry(
                 f"{self.base_url}/chat/completions", payload,
                 headers={"Authorization": f"Bearer {self.api_key}"},
             )
             waited += retry_waited
+            # Cline's gateway (api.cline.bot) wraps the standard chat completion
+            # in a {"data": {...}} envelope; unwrap it before reading choices
+            if isinstance(body, dict) and "choices" not in body and isinstance(body.get("data"), dict):
+                body = body["data"]
             out.append(body["choices"][0]["message"]["content"].strip())
         return Result(out, time.perf_counter() - started - waited, self.model, "openai-compat")
 

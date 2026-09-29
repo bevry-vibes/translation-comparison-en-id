@@ -40,7 +40,7 @@ Examples:
 
 Hosted backends (cloudflare, kagi) load no local model, so the memguard RAM fit
 check is skipped for them; the one-benchmark-at-a-time run lock still applies.
-Raw results land in results/*.json; `python3 eval/summarize.py` renders results/results.md.
+Raw results land in results/*.json; `eval/build_site_data.py` feeds the results site.
 """
 
 from __future__ import annotations
@@ -84,8 +84,15 @@ def make_backend(args):
         return OllamaBackend(args.model, host=args.host, prompt_style=args.prompt_style,
                              temperature=args.temperature, num_ctx=args.num_ctx, think=think)
     if args.backend == "openai":
+        try:
+            extra = json.loads(args.chat_kwargs_json) if args.chat_kwargs_json.strip() else {}
+        except json.JSONDecodeError as exc:
+            raise SystemExit(f"--chat-kwargs-json is not valid JSON: {exc}")
+        if not isinstance(extra, dict):
+            raise SystemExit("--chat-kwargs-json must decode to a JSON object")
         return OpenAICompatBackend(args.model, base_url=args.base_url, api_key=args.api_key,
-                                   prompt_style=args.prompt_style, temperature=args.temperature)
+                                   prompt_style=args.prompt_style, temperature=args.temperature,
+                                   extra_payload=extra, max_tokens=args.max_tokens)
     if args.backend == "cloudflare":
         token = args.api_key if args.api_key != "not-needed" else os.environ.get("CLOUDFLARE_API_TOKEN", "")
         account = args.account_id or os.environ.get("CLOUDFLARE_ACCOUNT_ID", "")
@@ -150,6 +157,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--host", default="http://127.0.0.1:11434")
     parser.add_argument("--base-url", default="http://127.0.0.1:1234/v1")
     parser.add_argument("--api-key", default="not-needed")
+    parser.add_argument("--chat-kwargs-json", default="",
+                        help="extra JSON merged into every OpenAI-compatible chat request "
+                             "body, e.g. a gateway reasoning switch "
+                             '(\'{"reasoning": {"enabled": false}}\' on OpenRouter, '
+                             '\'{"thinking": {"type": "disabled"}}\' on DeepSeek)')
     parser.add_argument("--account-id", default=None,
                         help="Cloudflare account id (default $CLOUDFLARE_ACCOUNT_ID)")
     parser.add_argument("--kagi-runtime", default="python", choices=["python", "deno"],
@@ -158,6 +170,10 @@ def parse_args() -> argparse.Namespace:
                         help="path to bevry-vibes/kagi-translate-client (default $KAGI_CLIENT_REPO)")
     parser.add_argument("--qwen-api-key", default=None,
                         help="QwenCloud API key (default $QWENCLOUD_API_KEY)")
+    parser.add_argument("--max-tokens", type=int, default=0,
+                        help="cap completion tokens on OpenAI-compatible chat requests "
+                             "(0 = omit the field; set it when a gateway preflights "
+                             "credit checks against the model's full output ceiling)")
     parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--num-ctx", type=int, default=2048)
     parser.add_argument("--think", dest="think", action="store_true", default=None,
@@ -257,7 +273,7 @@ def run(args: argparse.Namespace) -> None:
     if args.backend == "ollama" and not args.keep_loaded and args.model:
         memguard.unload_ollama([args.model], host=args.host)
     print(f"[mem ] {memguard.available_gb():.1f} GB RAM available after unload")
-    print("run `python3 eval/summarize.py` to regenerate results/results.md")
+    print("run `eval/build_site_data.py` to refresh the results site data")
 
 
 def main() -> None:
