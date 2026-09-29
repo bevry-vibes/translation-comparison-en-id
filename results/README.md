@@ -11,7 +11,7 @@ first.
 | path | what it is |
 | --- | --- |
 | `results/<label>.json` | one benchmark run: a backend translating the test set in one direction, with corpus metrics, per-category chrF and every source/reference/hypothesis sample |
-| `results/token-survival.json` | the scored masked-name matrix for all `*-masked-*.json` runs, emitted by `eval/token_survival.py` (the only scoring implementation) |
+| `results/token-survival.json` | the scored masked-name matrix for all `*-masked-*.json` runs, emitted by `eval/deno/token_survival.ts` (the only scoring implementation) |
 | `results/archive/` | results that must not be compared against live ones: `testset-v1/` (14-segment en→id runs — the test set is now 78/78, see below), `client-parity/` (one-off same-backend client comparisons), `old-testset/` (runs against test sets that no longer exist) |
 | `site/src/data/results.json` | the joined dataset the site renders — run rows sorted per direction with best-per-column flags, category tables, the survival matrix with per-segment failures. Built by `eval/build_site_data.py` |
 
@@ -57,18 +57,18 @@ One command per family; all need `.env` (gitignored) with the provider keys:
 # the off-QwenCloud sweep (OpenRouter + DeepSeek official; 11 models, both directions)
 bash scripts/run-providers.sh all both            # add `masked` for the survival set
 
-# QwenCloud legs (qwen-mt family, raisable chat set, glm fallback) + Cloudflare + Kagi
+# QwenCloud legs (raisable chat set, glm fallback) + Cloudflare + Kagi
 bash scripts/run-cloud.sh all both
 
-# one-off direct run
-.venv/bin/python eval/run_eval.py --backend openai --model qwen/qwen3-235b-a22b-2507 \
+# one-off direct run (defaults come from eval/deno/providers.ts by label prefix)
+deno run -A eval/deno/run_eval.ts --backend openai --model qwen/qwen3-235b-a22b-2507 \
   --base-url https://openrouter.ai/api/v1 --api-key "$OPENROUTER_API_KEY" \
-  --chat-kwargs-json '{"reasoning":{"enabled":false}}' --max-tokens 1024 \
+  --chat-kwargs-json '{"reasoning":{"enabled":false}}' --max-tokens 4096 \
   --prompt-style engine --src id --tgt en --name or-qwen3-235b-a22b-2507
 ```
 
-After any new run: `python3 eval/token_survival.py` (if masked runs changed), then
-`.venv/bin/python eval/build_site_data.py`, then `cd site && npx wrangler@latest deploy`.
+After any new run: `deno run -A eval/deno/token_survival.ts` (if masked runs changed), then
+`cd site && deno task deploy` (regenerates the site data, builds, and deploys).
 
 Gotchas the hard way:
 
@@ -86,14 +86,17 @@ Gotchas the hard way:
   via `translation_options`); `translate_gemma`/`hymt2`/`generic` = per-family templates.
 - **temperature 0, sequential per-segment, warmup before timing** — the harness does this; keep
   it if you bypass the harness.
-- **One benchmark at a time** (`eval/memguard.py` run lock) and never commit `data/*.zip`.
+- **One benchmark at a time** (the harness's run lock) and never commit `data/*.zip`.
+- **Metrics are the bundled local formulas** (`eval/deno/metrics.ts`), the same formulas
+  sacrebleu implements — verified like-for-like when the client-parity rows were measured;
+  `metric_backend` on every run records which implementation scored it.
 
 ## Rebuilding the derived artifacts
 
 ```bash
-python3 eval/build_testset.py --flores 20 --tatoeba 40 --flores-enid 20 --tatoeba-enid 44 \
-  --out data/testset-v2.jsonl     # deterministic; id->en is byte-identical across runs
-python3 eval/build_masked_testset.py
-python3 eval/token_survival.py
-.venv/bin/python eval/build_site_data.py
+deno run -A eval/deno/build_testset.ts --flores 20 --tatoeba 40 --flores-enid 20 --tatoeba-enid 44 \
+  --out data/testset-v2.jsonl     # deterministic (a CPython-exact MT19937 port); rebuilds are identical
+deno run -A eval/deno/build_masked_testset.ts
+deno run -A eval/deno/token_survival.ts
+cd site && deno task data         # also writes public/data/results.json for the JSON routes
 ```

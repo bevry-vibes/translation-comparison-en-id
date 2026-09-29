@@ -36,7 +36,10 @@ function ngramsJoined(tokens: string[], n: number): Map<string, number> {
   return counts;
 }
 
-function intersectionCount(a: Map<string, number>, b: Map<string, number>): number {
+function intersectionCount(
+  a: Map<string, number>,
+  b: Map<string, number>,
+): number {
   let total = 0;
   for (const [gram, count] of a) {
     const other = b.get(gram);
@@ -51,7 +54,12 @@ function sumCounts(counts: Map<string, number>): number {
   return total;
 }
 
-function fScore(matched: number, hypTotal: number, refTotal: number, beta: number): number {
+function fScore(
+  matched: number,
+  hypTotal: number,
+  refTotal: number,
+  beta: number,
+): number {
   if (hypTotal === 0 || refTotal === 0 || matched === 0) return 0;
   const precision = matched / hypTotal;
   const recall = matched / refTotal;
@@ -89,12 +97,18 @@ export function chrf(
     }
   }
   let score = fScore(charMatched, charHyp, charRef, beta);
-  if (wordOrder) score = (score + fScore(wordMatched, wordHyp, wordRef, beta)) / 2;
+  if (wordOrder) {
+    score = (score + fScore(wordMatched, wordHyp, wordRef, beta)) / 2;
+  }
   return Math.round(100 * score * 100) / 100;
 }
 
 /** Corpus BLEU-4 with one reference, 0-100 (add-1 smoothing on unigrams). */
-export function bleu(hypotheses: string[], references: string[], maxOrder = 4): number {
+export function bleu(
+  hypotheses: string[],
+  references: string[],
+  maxOrder = 4,
+): number {
   const matchedTotal = new Array<number>(maxOrder).fill(0);
   const hypTotal = new Array<number>(maxOrder).fill(0);
   let hypLen = 0, refLen = 0;
@@ -120,7 +134,9 @@ export function bleu(hypotheses: string[], references: string[], maxOrder = 4): 
     precisions.push(denom ? matched / denom : 0);
   }
   if (Math.min(...precisions) <= 0) return 0;
-  const geoMean = Math.exp(precisions.reduce((acc, p) => acc + Math.log(p), 0) / maxOrder);
+  const geoMean = Math.exp(
+    precisions.reduce((acc, p) => acc + Math.log(p), 0) / maxOrder,
+  );
   const bp = hypLen > refLen ? 1 : Math.exp(1 - refLen / Math.max(hypLen, 1));
   return Math.round(100 * bp * geoMean * 100) / 100;
 }
@@ -136,12 +152,20 @@ export function scoreAll(
   };
 }
 
-export function perSentenceChrf(hypotheses: string[], references: string[]): number[] {
+export function perSentenceChrf(
+  hypotheses: string[],
+  references: string[],
+): number[] {
   return hypotheses.map((h, i) => chrf([h], [references[i]]));
 }
 
-export function exactMatchRate(hypotheses: string[], references: string[]): number {
+export function exactMatchRate(
+  hypotheses: string[],
+  references: string[],
+): number {
   if (hypotheses.length === 0) return 0;
-  const hits = hypotheses.filter((h, i) => normalize(h) === normalize(references[i])).length;
+  const hits =
+    hypotheses.filter((h, i) => normalize(h) === normalize(references[i]))
+      .length;
   return Math.round((100 * hits) / hypotheses.length * 100) / 100;
 }

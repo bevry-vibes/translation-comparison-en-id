@@ -76,3 +76,7 @@ site/dist/
 
 # this project: ZCode app-local state (plans, caches)
 .zcode/
+
+# this project: generated site data (deno task data)
+site/src/data/results.json
+site/public/data/

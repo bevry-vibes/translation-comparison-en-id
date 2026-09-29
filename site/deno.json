@@ -1,0 +1,10 @@
+{
+  "tasks": {
+    "data": "deno run -A tools/build_data.ts",
+    "build": "deno task data && deno run -A --unstable-bare-node-builtins npm:vite@6.3.5 build",
+    "dev": "deno task data && deno run -A --unstable-bare-node-builtins npm:vite@6.3.5 dev",
+    "check": "deno check tools/build_data.ts worker/index.ts ../eval/deno/run_eval.ts ../eval/deno/token_survival.ts ../eval/deno/build_testset.ts ../eval/deno/build_masked_testset.ts",
+    "deploy": "deno task build && deno run -A npm:wrangler@4.143.0 deploy"
+  },
+  "nodeModulesDir": "auto"
+}

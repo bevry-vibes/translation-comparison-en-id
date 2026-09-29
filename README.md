@@ -4,7 +4,7 @@ A survey of **free, locally runnable** AI models for translation between Indones
 
 - 📊 **[docs/model-survey.md](docs/model-survey.md)** — the survey: candidates, licences, published quality, hardware sizing, runtimes, evaluation options and the measured results from this repo.
 - 🇮🇩 **[docs/indonesian-notes.md](docs/indonesian-notes.md)** — linguistic/pipeline checklist (register, reduplication, `-nya`, numbers, entities, do-not-translate lists).
-- 🌐 **[the results site](https://translation-comparison-en-id.bevry.workers.dev)** — the canonical rendered results: per-direction run tables (Quality | Token survival toggle), category chrF, the current model recommendation, and the verbatim prompts — served from a Cloudflare Worker; data rebuilt from `results/*.json` by `eval/build_site_data.py`.
+- 🌐 **[the results site](https://translation-comparison-en-id.bevry.workers.dev)** — the canonical rendered results: per-direction run tables (Quality | Token survival toggle), category chrF, the current model recommendation, and the verbatim prompts — served from a Cloudflare Worker; data generated at deploy time by `cd site && deno task data` from the committed results.
 - 📖 **[results/README.md](results/README.md)** — how to interpret the results (comparability rules, field dictionary) and how to replicate a run. Read it before reasoning about the numbers.
 
 ## Quick start
@@ -16,23 +16,19 @@ bash scripts/pull-models.sh hymt2    # Tencent Hy-MT2-1.8B (Apache-2.0) incl. th
 bash scripts/pull-models.sh argos    # Argos Translate en<->id (tiny, CPU-only, fully offline)
 
 # 2. build the test set (testset-v2: FLORES-101 devtest + Tatoeba + curated probes, 78 segments per direction)
-python3 eval/build_testset.py --flores 20 --tatoeba 40 --flores-enid 20 --tatoeba-enid 44 \
+deno run -A eval/deno/build_testset.ts --flores 20 --tatoeba 40 --flores-enid 20 --tatoeba-enid 44 \
   --out data/testset-v2.jsonl
 
 # 3. run any backend
-python3 eval/run_eval.py --backend ollama --model translategemma:4b \
+deno run -A eval/deno/run_eval.ts --backend ollama --model translategemma:4b \
   --prompt-style translate_gemma --src id --tgt en --name translategemma-4b
 
-# 4. or run the hosted sweeps (Cloudflare Workers AI + Kagi Translate + Qwen-MT; needs .env)
+# 4. or run the hosted sweeps (OpenRouter + DeepSeek + QwenCloud + Cloudflare + Kagi; needs .env)
 bash scripts/run-cloud.sh all
+bash scripts/run-providers.sh all both           # off-QwenCloud sweep; add `masked` for survival
 
-# 4b. or the off-QwenCloud provider sweep (OpenRouter + DeepSeek official; needs .env)
-bash scripts/run-providers.sh all both           # plain set, both directions
-bash scripts/run-providers.sh all both masked    # masked names -> token survival
-
-# 5. or run everything that is installed and refresh the results-site data
-bash scripts/run-bench.sh
-python3 eval/build_site_data.py
+# 5. rebuild the site data (site/{src,public}/data/results.json) and deploy
+cd site && deno task deploy
 ```
 
 `scripts/run-bench.sh` auto-detects which backends are available (Ollama models, Argos, transformers) and skips the rest.
@@ -88,7 +84,7 @@ The hosted backends load no model on this machine, so `memguard` skips the RAM f
 Setup:
 
 ```bash
-# .env (gitignored) — never commit these
+# .env (gitignored) — never commit these   (one-time bootstrap: cd site && deno install)
 CLOUDFLARE_API_TOKEN=...        # token with Workers AI permission
 CLOUDFLARE_ACCOUNT_ID=...       # your Cloudflare account id
 KAGI_SESSION=...                # the kagi_session cookie of translate.kagi.com
@@ -98,49 +94,49 @@ OPENROUTER_API_KEY=...          # openrouter.ai key (the off-QwenCloud sweep)
 DEEPSEEK_API_KEY=...            # api.deepseek.com key (the off-QwenCloud sweep)
 CLINE_API_KEY=...               # api.cline.bot key (gateway unstable for batch runs)
 
-# one-time bootstrap (uv; never bare pip on the system)
-uv venv .venv
-uv pip install --python .venv/bin/python -r requirements.txt   # cloudflare SDK + sacrebleu
+# one-time bootstrap: materialise node_modules with deno (no npm, no node)
+cd site && deno install
 ```
+
 
 Direct runs:
 
 ```bash
 # Cloudflare Workers AI, Python (official `cloudflare` SDK)
-.venv/bin/python eval/run_eval.py --backend cloudflare --model '@cf/meta/m2m100-1.2b' \
+deno run -A eval/deno/run_eval.ts --backend cloudflare --model '@cf/meta/m2m100-1.2b' \
   --prompt-style none --src id --tgt en --name cf-m2m100-1.2b
 
 # Cloudflare Workers AI, Deno (npm `cloudflare` SDK) — the TypeScript consumer proof;
-# smoke-check it, don't use it for measurement rows (python harness is the measurement path)
+# the TypeScript consumer proof: smoke-verified, not used for measurement rows
 deno run --allow-net --allow-env --allow-read --allow-write --allow-run \
   eval/deno/run_eval.ts --model '@cf/meta/m2m100-1.2b' --src id --tgt en --name cf-m2m100-1.2b-deno
 
-# Kagi Translate through bevry-vibes/kagi-translate-client (python runtime; deno available via --kagi-runtime deno)
-.venv/bin/python eval/run_eval.py --backend kagi --kagi-runtime python \
+# Kagi Translate through bevry-vibes/kagi-translate-client (uv runtime; deno available via --kagi-runtime deno)
+deno run -A eval/deno/run_eval.ts --backend kagi --kagi-runtime python \
   --prompt-style none --src id --tgt en --name kagi
 
 # Qwen-MT dedicated translation models on QwenCloud MaaS
-.venv/bin/python eval/run_eval.py --backend qwen --model qwen-mt-flash \
+deno run -A eval/deno/run_eval.ts --backend qwen --model qwen-mt-flash \
   --prompt-style none --src id --tgt en --name qwen-mt-flash
 
 # QwenCloud chat models through the production `engine` prompt (raisable rate limits)
-.venv/bin/python eval/run_eval.py --backend openai --model qwen-flash \
+deno run -A eval/deno/run_eval.ts --backend openai --model qwen-flash \
   --base-url https://maas.qwencloudapi.com/compatible-mode/v1 \
   --api-key "$QWENCLOUD_API_KEY" --prompt-style engine --src id --tgt en --name qwen-flash
 
 # Workers AI chat fallback (glm-4.7-flash), production request shape
-.venv/bin/python eval/run_eval.py --backend cloudflare-chat --model '@cf/zai-org/glm-4.7-flash' \
+deno run -A eval/deno/run_eval.ts --backend cloudflare-chat --model '@cf/zai-org/glm-4.7-flash' \
   --prompt-style engine --src id --tgt en --name glm-4.7-flash
 
 # Token survival on masked names: does the model eat private-use placeholders?
-python3 eval/build_masked_testset.py
-.venv/bin/python eval/run_eval.py --backend qwen --model qwen-mt-lite \
+deno run -A eval/deno/build_masked_testset.ts
+deno run -A eval/deno/run_eval.ts --backend qwen --model qwen-mt-lite \
   --prompt-style none --testset data/masked.jsonl --src id --tgt en --name qwen-mt-lite-masked
-python3 eval/token_survival.py   # scores every masked run into results/token-survival.json
+deno run -A eval/deno/token_survival.ts   # scores every masked run into results/token-survival.json
 
 # OpenRouter model through the production `engine` prompt (reasoning disabled, capped
 # completions so the credit preflight passes; results labelled or-*)
-.venv/bin/python eval/run_eval.py --backend openai --model qwen/qwen3-235b-a22b-2507 \
+deno run -A eval/deno/run_eval.ts --backend openai --model qwen/qwen3-235b-a22b-2507 \
   --base-url https://openrouter.ai/api/v1 --api-key "$OPENROUTER_API_KEY" \
   --chat-kwargs-json '{"reasoning":{"enabled":false}}' --max-tokens 1024 \
   --prompt-style engine --src id --tgt en --name or-qwen3-235b-a22b-2507
@@ -152,13 +148,12 @@ python3 eval/token_survival.py   # scores every masked run into results/token-su
 static assets. Rebuild and redeploy:
 
 ```bash
-.venv/bin/python eval/build_site_data.py   # results/*.json -> site/src/data/results.json
-cd site && npm run build
-cd site && npx wrangler@latest deploy      # needs a wrangler login (OAuth) or a
-                                           # CLOUDFLARE_API_TOKEN with Workers scripts+assets edit
+cd site && deno task deploy   # deno task data -> vite build -> wrangler deploy
 ```
 
-Live at **https://translation-comparison-en-id.bevry.workers.dev**.
+Live at **https://translation-comparison-en-id.bevry.workers.dev** (Workers with static
+assets + a small JSON API: `/index.json`, `/runs/<label>.json`, `/survival/<dir>.json`,
+`/llms.txt` — for agents; see `site/worker/index.ts`).
 
 Notes:
 
@@ -170,10 +165,8 @@ Notes:
 
 ## Requirements
 
-- [uv](https://docs.astral.sh/uv) for the Python environment (`.venv` bootstrap; never bare pip). Python 3.9+ for the stdlib-only paths.
-- [Deno](https://deno.com) for the Workers AI Deno harness.
-- `sacrebleu` recommended for metrics (it rides in `requirements.txt` for the `.venv`).
-- `ollama` for the LLM backends; `argostranslate` for the Argos backend; `torch` + `transformers` + `sentencepiece` only if you want the classic NMT backends.
+- [Deno](https://deno.com) — the only runtime: the harness, the site pipeline and the deploy tasks are TypeScript run with Deno (npm tooling runs through Deno's npm compatibility; there is no python and no node source here).
+- `ollama` for the local LLM backends; `argostranslate` for the Argos backend; `torch` + `transformers` only if you want the classic local NMT backends.
 - Hosted: a Cloudflare API token with Workers AI permission plus your account id, and a local clone of [bevry-vibes/kagi-translate-client](https://github.com/bevry-vibes/kagi-translate-client) with a Kagi session cookie — all through the gitignored `.env`.
 - The curated set in `data/curated.jsonl` has hand-written references. Treat them as a starting point for your own review, not as gold standard. Replace them with references from your domain before you make decisions.
 
