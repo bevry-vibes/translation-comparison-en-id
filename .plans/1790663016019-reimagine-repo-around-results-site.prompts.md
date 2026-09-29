@@ -85,6 +85,13 @@
 > > New model runs beyond a smoke pass; the 2026-09-29 sweep data is the dataset this refactor is verified against.
 > what is this?
 
+**15.** (plan amendment: keep the Deno client as a proof, not a measurement source)
+
+> 1. good
+> 2.ok yeah, out of scope
+>
+> keep deno client, but just prove it works, don't use it for measurements - as some consumers of this work with ts instead of python
+
 ## Steering notes
 
 - Prompts 7–9 designed the current table UX (survival as a column mode joined by model, stable
@@ -98,3 +105,6 @@
   out-of-scope bullet meant (answered: the refactor phases need no benchmarking runs —
   committed data plus a smoke pass verifies them; only the parity phase re-runs models, and it
   re-runs the existing candidate set, adding no new candidates).
+- Prompt 15 confirmed the parity phase and the out-of-scope production-switch, and reversed the
+  Deno-harness deletion: `eval/deno/` stays as a kept-working TypeScript consumer path (smoke
+  proven, never a measurement row source) because some consumers work in TS rather than python.

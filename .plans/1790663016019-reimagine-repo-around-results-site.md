@@ -29,8 +29,10 @@ Confirmed decisions (session 2026-09-29):
   **replication** (verbatim prompts, request shapes, flags) — "agents that are referring to
   this repo [must] comprehend the results, and understand how to interpret the results"; "we
   also need agent guidance on how to replicate the successes, e.g. the prompts".
-- Retire: the Deno harness, duplicate client-parity result rows, `results/token-survival.md`,
-  stale result generations from older test sets.
+- Retire: duplicate client-parity result rows, `results/token-survival.md`,
+  stale result generations from older test sets. The **Deno harness stays** but is repositioned
+  (approved 2026-09-29): a kept-working TypeScript consumer path — proven with a smoke run, never
+  used for measurement rows — because "some consumers of this work with ts instead of python".
 - Deduplicate: Cloudflare backends, shell scaffolding, provider metadata (one manifest),
   runs-table column definitions.
 - `docs/model-survey.md` restructured for legibility; its tables frozen as point-in-time
@@ -62,8 +64,12 @@ Confirmed decisions (session 2026-09-29):
    client-parity duplicates `*-deno.json` (Cloudflare Deno leg) and `kagi-deno-*`. Rename
    `kagi-py-*` → `kagi-*` (the python client is the canonical Kagi measurement). Update
    `KAGI.md`-style references accordingly.
-4. **Delete `eval/deno/`** and the deno invocation in `scripts/run-cloud.sh`; simplify
-   `KagiBackend` (drop `--kagi-runtime` and the deno path — python only).
+4. **Reposition `eval/deno/run_eval.ts` as the TypeScript consumer proof.** Keep the harness;
+   verify it still works with a smoke run; remove it from the measurement sweeps
+   (`scripts/run-cloud.sh` stops producing `*-deno` rows; its README/results/README description
+   says "kept-working client proof for TS consumers, not a measurement source"). Archive the
+   `*-deno` measurement rows per step 3. `KagiBackend` keeps its `--kagi-runtime deno` option
+   (same TS-consumer rationale) while the `kagi-deno` parity rows archive.
 
 ### 2. Agent guidance layer
 
@@ -149,7 +155,7 @@ Confirmed decisions (session 2026-09-29):
 
 22. Rebuild data flow end to end: `build_testset.py`, `build_masked_testset.py`, one smoke
     scoring pass, `build_site_data.py` (now consuming survival JSON), `npm run build`,
-    `wrangler deploy`.
+    `wrangler deploy`. Plus the Deno-client smoke run (its "prove it works" obligation, step 4).
 23. Browser verification pass over the deployed site: tabs, both modes, sorting, sample and
     failure dialogs, the new methodology/prompts/recommendation segments.
 24. An agent-comprehension read-through: follow AGENTS.md → README → results/README.md → site
