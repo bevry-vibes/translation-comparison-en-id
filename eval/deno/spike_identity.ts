@@ -252,21 +252,26 @@ async function translate(
     );
   }
   const envelope = payload as Record<string, unknown>;
-  const message =
-    ((envelope.choices as Record<string, unknown>[] | undefined)?.[0] ??
-      {}) as Record<string, unknown>;
+  const choice = ((envelope.choices as Record<string, unknown>[] | undefined)?.[0] ??
+    {}) as Record<string, unknown>;
+  const message = (typeof choice.message === "object" && choice.message !== null
+    ? choice.message
+    : {}) as Record<string, unknown>;
   const content =
+    // standard OpenAI shape: choices[0].message.content
     (typeof message.content === "string" ? message.content : "").trim() ||
+    // some gateways inline the text on the choice
+    (typeof choice.content === "string" ? choice.content : "").trim() ||
+    // legacy single-string completion shape
     (typeof envelope.response === "string" ? envelope.response : "").trim();
   if (!content) {
     const reasoning = message.reasoning_content ?? message.reasoning;
     throw new Error(
       `empty content (finish_reason=${
-        (envelope.choices as Record<string, unknown>[] | undefined)?.[0]
-          ?.finish_reason
-      }) message-keys=[${Object.keys(message).join(",")}] content-type=${
-        typeof message.content
-      } reasoning=${
+        choice.finish_reason
+      }) choice-keys=[${Object.keys(choice).join(",")}] content-type=${
+        typeof choice.content
+      } message-type=${typeof choice.message} reasoning=${
         typeof reasoning === "string"
           ? `${reasoning.length}ch: ${JSON.stringify(reasoning.slice(0, 150))}`
           : typeof reasoning
