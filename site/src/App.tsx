@@ -5,7 +5,6 @@ import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CategorySection } from '@/components/category-section'
 import { RunsTable, type TableMode } from '@/components/runs-table'
-import { SurvivalSection } from '@/components/survival-section'
 import { data, directionLabel, formatDateTime } from '@/lib/data'
 
 const REPO_URL = 'https://github.com/bevry-vibes/translation-comparison-en-id'
@@ -56,8 +55,9 @@ function Footer() {
         latency and are not comparable to local (Ollama) rows.
       </p>
       <p>
-        Masked-testset runs are excluded from the main tables and scored separately for name-token
-        survival. Source data: <span className="font-mono">results/*.json</span>; rebuilt via{' '}
+        Masked-name survival comes from separate 10-segment runs; the Token survival toggle joins
+        them onto the main rows by model. Source data:{' '}
+        <span className="font-mono">results/*.json</span>; rebuilt via{' '}
         <span className="font-mono">.venv/bin/python eval/build_site_data.py</span>.
       </p>
     </footer>
@@ -70,41 +70,38 @@ export default function App() {
     <div className="mx-auto min-h-dvh w-full max-w-6xl space-y-6 px-4 py-8 sm:px-6">
       <Header />
       <Tabs defaultValue={data.directions[0]?.direction} className="gap-4">
-        <TabsList className="h-9">
-          {data.directions.map((direction) => (
-            <TabsTrigger key={direction.direction} value={direction.direction} className="px-4">
-              {directionLabel(direction)}
-              <Badge variant="secondary" className="ms-1 h-4 px-1 font-mono text-[10px]">
-                {direction.runs.length}
-              </Badge>
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <TabsList className="h-9">
+            {data.directions.map((direction) => (
+              <TabsTrigger key={direction.direction} value={direction.direction} className="px-4">
+                {directionLabel(direction)}
+                <Badge variant="secondary" className="ms-1 h-4 px-1 font-mono text-[10px]">
+                  {direction.runs.length}
+                </Badge>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+          <Tabs value={tableMode} onValueChange={(value) => setTableMode(value as TableMode)}>
+            <TabsList className="h-9">
+              <TabsTrigger value="quality" className="px-4">
+                Quality
+              </TabsTrigger>
+              <TabsTrigger
+                value="survival"
+                className="px-4"
+                disabled={data.directions.every((d) => d.token_survival.length === 0)}
+              >
+                Token survival
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
         {data.directions.map((direction) => (
           <TabsContent key={direction.direction} value={direction.direction} className="space-y-6">
             <section className="space-y-2">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
-                  {directionLabel(direction)} — all runs, sorted by chrF
-                </h2>
-                <Tabs
-                  value={tableMode}
-                  onValueChange={(value) => setTableMode(value as TableMode)}
-                >
-                  <TabsList className="h-9">
-                    <TabsTrigger value="quality" className="px-4">
-                      Quality
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="survival"
-                      className="px-4"
-                      disabled={direction.token_survival.length === 0}
-                    >
-                      Token survival
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
-              </div>
+              <h2 className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
+                {directionLabel(direction)} — all runs, sorted by chrF
+              </h2>
               <RunsTable
                 runs={direction.runs}
                 survival={direction.token_survival}
@@ -112,7 +109,6 @@ export default function App() {
               />
             </section>
             <CategorySection direction={direction} />
-            <SurvivalSection direction={direction} />
           </TabsContent>
         ))}
       </Tabs>

@@ -3,6 +3,13 @@ import { ArrowDown, ArrowUp, ChevronsUpDown, ShieldCheck, ShieldX } from 'lucide
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
   Table,
   TableBody,
   TableCell,
@@ -10,9 +17,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { FailuresDialog } from '@/components/survival-section'
 import { SamplesDialog } from '@/components/samples-dialog'
-import { heatText } from '@/lib/data'
+import { heatText, renderTokens } from '@/lib/data'
 import type { RunRow, SurvivalRow } from '@/types'
 
 export type TableMode = 'quality' | 'survival'
@@ -27,6 +33,51 @@ interface Column {
   value: (run: RunRow) => string | number
   render?: (run: RunRow) => React.ReactNode
   defaultDir?: SortDir
+}
+
+function FailuresDialog({
+  row,
+  open,
+  onOpenChange,
+}: {
+  row: SurvivalRow | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  if (!row) return null
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="font-mono text-base">
+            {row.model} — {row.passed}/{row.total} segments survived
+          </DialogTitle>
+          <DialogDescription>
+            {row.label}.json — every expected protection token must survive with the right index,
+            full count, and round-trip through restoration.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          {row.failures.map((failure) => (
+            <div key={failure.id} className="rounded-lg border bg-card/50 p-3">
+              <div className="mb-1.5 font-mono text-xs font-semibold text-red-500 dark:text-red-400">
+                {failure.id}
+              </div>
+              <ul className="mb-2 list-disc space-y-1 ps-5 text-xs text-foreground/80">
+                {failure.failures.map((line, index) => (
+                  <li key={index}>{renderTokens(line)}</li>
+                ))}
+              </ul>
+              <div className="text-[11px] tracking-wide text-muted-foreground uppercase">
+                Raw hypothesis
+              </div>
+              <div className="font-mono text-xs">{renderTokens(failure.hypothesis)}</div>
+            </div>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
 }
 
 function metricCell(run: RunRow, key: 'chrf' | 'chrfpp' | 'bleu') {
@@ -253,7 +304,7 @@ export function RunsTable({
     {
       key: 'failures',
       label: 'Failures',
-      numeric: false,
+      numeric: true,
       value: (r) => {
         const best = bestVariant(survivalByModel.get(r.model) ?? [])
         return best ? best.total - best.passed : -1
@@ -281,12 +332,10 @@ export function RunsTable({
   ]
 
   const columns = mode === 'survival' ? survivalColumns : qualityColumns
-  const sortable = mode === 'quality'
 
   const sorted = useMemo(() => {
-    if (!sortable) return runs
     const column = columns.find((c) => c.key === sortKey)
-    if (!column) return runs
+    if (!column) return runs // e.g. a quality sort key while in survival mode: keep the chrF order
     const dir = sortDir === 'asc' ? 1 : -1
     return [...runs].sort((a, b) => {
       const av = column.value(a)
@@ -295,7 +344,7 @@ export function RunsTable({
       if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir
       return String(av).localeCompare(String(bv)) * dir
     })
-  }, [runs, sortKey, sortDir, columns, sortable])
+  }, [runs, sortKey, sortDir, columns])
 
   function toggleSort(column: Column) {
     if (sortKey === column.key) {
@@ -318,42 +367,28 @@ export function RunsTable({
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               {columns.map((column) => {
-                const active = sortable && sortKey === column.key
-                const head = (
-                  <>
-                    {column.label}
-                    {active &&
-                      (sortDir === 'asc' ? (
-                        <ArrowUp className="size-3" />
-                      ) : (
-                        <ArrowDown className="size-3" />
-                      ))}
-                    {sortable && !active && (
-                      <ChevronsUpDown className="size-3 opacity-40" />
-                    )}
-                  </>
-                )
+                const active = sortKey === column.key
                 return (
                   <TableHead key={column.key} className={column.numeric ? 'text-right' : ''}>
-                    {sortable ? (
-                      <button
-                        type="button"
-                        title={column.title ?? `Sort by ${column.label}`}
-                        onClick={() => toggleSort(column)}
-                        className={`inline-flex items-center gap-1 text-xs font-medium tracking-wide uppercase transition-colors hover:text-foreground ${
-                          active ? 'text-foreground' : 'text-muted-foreground'
-                        }`}
-                      >
-                        {head}
-                      </button>
-                    ) : (
-                      <span
-                        title={column.title}
-                        className="inline-flex items-center gap-1 text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                      >
-                        {head}
-                      </span>
-                    )}
+                    <button
+                      type="button"
+                      title={column.title ?? `Sort by ${column.label}`}
+                      onClick={() => toggleSort(column)}
+                      className={`inline-flex items-center gap-1 text-xs font-medium tracking-wide uppercase transition-colors hover:text-foreground ${
+                        active ? 'text-foreground' : 'text-muted-foreground'
+                      }`}
+                    >
+                      {column.label}
+                      {active ? (
+                        sortDir === 'asc' ? (
+                          <ArrowUp className="size-3" />
+                        ) : (
+                          <ArrowDown className="size-3" />
+                        )
+                      ) : (
+                        <ChevronsUpDown className="size-3 opacity-40" />
+                      )}
+                    </button>
                   </TableHead>
                 )
               })}
