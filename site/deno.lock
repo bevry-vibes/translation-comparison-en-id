@@ -9,6 +9,7 @@
     "npm:@vitejs/plugin-react@^4.3.4": "4.7.0_vite@6.3.5__@types+node@24.19.0__picomatch@4.0.7_@babel+core@7.29.7_@types+node@24.19.0",
     "npm:class-variance-authority@~0.7.1": "0.7.1",
     "npm:cn@0.4": "0.4.0",
+    "npm:ghostty-web@0.4.0-next.20.g1858a59": "0.4.0-next.20.g1858a59",
     "npm:lucide-react@^1.48.0": "1.48.0_react@19.3.0",
     "npm:oxlint@^1.81.0": "1.86.0",
     "npm:radix-ui@^1.6.7": "1.6.7_@types+react@19.3.0_@types+react-dom@19.3.0__@types+react@19.3.0_react@19.3.0_react-dom@19.3.0__react@19.3.0",
@@ -2956,6 +2957,9 @@
         "is-stream@4.0.1"
       ]
     },
+    "ghostty-web@0.4.0-next.20.g1858a59": {
+      "integrity": "sha512-NXA9H3IJlx+DGJukXbOPQWFkigYdAatTqkoIvM8tvhfbaYoDf3gGKxXLLyXtLYOBt5qzGdEZa294TU36gULjVg=="
+    },
     "glob-parent@5.1.2": {
       "integrity": "sha512-AOIgSQCepiJYwP3ARnGx+5VnTu2HBYdzbGP45eLw1vr3zB3vZLeyed1sC9hnbcOc9/SrMyM5RPQrkGz4aS9Zow==",
       "dependencies": [
@@ -4254,6 +4258,9 @@
     }
   },
   "workspace": {
+    "dependencies": [
+      "npm:ghostty-web@0.4.0-next.20.g1858a59"
+    ],
     "packageJson": {
       "dependencies": [
         "npm:@fontsource-variable/geist@^5.3.0",

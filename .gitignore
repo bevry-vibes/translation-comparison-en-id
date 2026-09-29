@@ -80,3 +80,6 @@ site/dist/
 # this project: generated site data (deno task data)
 site/src/data/results.json
 site/public/data/
+
+# this project: sweep progress markers
+.refresh-started-*

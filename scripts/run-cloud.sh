@@ -79,9 +79,26 @@ case "$DIRECTION" in
     ;;
 esac
 
+CLOUD_LEGS=0
+case "$PROVIDER" in
+  cloudflare) CLOUD_LEGS=1 ;;
+  kagi) CLOUD_LEGS=1 ;;
+  qwen) CLOUD_LEGS=${#QWEN_MODELS[@]} ;;
+  qwen-chat) CLOUD_LEGS=${#QWEN_CHAT_MODELS[@]} ;;
+  glm) CLOUD_LEGS=1 ;;
+  replacement) CLOUD_LEGS=$(( ${#REPLACEMENT_QWEN_MODELS[@]} + ${#REPLACEMENT_CHAT_MODELS[@]} + 1 )) ;;
+  both) CLOUD_LEGS=2 ;;
+  all) CLOUD_LEGS=$(( ${#QWEN_MODELS[@]} + ${#QWEN_CHAT_MODELS[@]} + 3 )) ;;
+esac
+TOTAL_LEGS=$(( CLOUD_LEGS * ${#DIRECTIONS[@]} / 2 ))
+LEG=0
+progress_emit "cloud-sweep ($PROVIDER)" running 0 "$TOTAL_LEGS" "starting"
+
 for ((i = 0; i < ${#DIRECTIONS[@]}; i += 2)); do
   SRC="${DIRECTIONS[$i]}"
   TGT="${DIRECTIONS[$((i + 1))]}"
+  LEG=$((LEG + 1))
+  progress_emit "cloud-sweep ($PROVIDER)" running "$LEG" "$TOTAL_LEGS" "direction $SRC->$TGT"
   case "$PROVIDER" in
     cloudflare) run_cf "$SRC" "$TGT" ;;
     kagi) run_kagi "$SRC" "$TGT" ;;
@@ -100,3 +117,4 @@ for ((i = 0; i < ${#DIRECTIONS[@]}; i += 2)); do
 done
 
 (cd site && deno task data)
+progress_emit "cloud-sweep ($PROVIDER)" complete "$TOTAL_LEGS" "$TOTAL_LEGS" "done"

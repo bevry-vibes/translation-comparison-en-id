@@ -67,6 +67,10 @@ case "$MODE" in
   *) echo "usage: scripts/run-providers.sh [openrouter|deepseek|cline|all] [id-en|en-id|both] [plain|masked]"; exit 2 ;;
 esac
 
+TOTAL_LEGS=$(( ${#MODELS[@]} * ${#DIRECTIONS[@]} / 2 ))
+LEG=0
+progress_emit "provider-sweep ($PROVIDER, ${MODE:-plain})" running 0 "$TOTAL_LEGS" "starting"
+
 for entry in "${MODELS[@]}"; do
   IFS='|' read -r provider url key_var model name kwargs <<<"$entry"
   if [[ "$PROVIDER" != all && "$PROVIDER" != "$provider" ]]; then
@@ -80,6 +84,8 @@ for entry in "${MODELS[@]}"; do
   for ((i = 0; i < ${#DIRECTIONS[@]}; i += 2)); do
     SRC="${DIRECTIONS[$i]}"
     TGT="${DIRECTIONS[$((i + 1))]}"
+    LEG=$((LEG + 1))
+    progress_emit "provider-sweep ($PROVIDER, ${MODE:-plain})" running "$LEG" "$TOTAL_LEGS" "$name ($SRC->$TGT)"
     deno run -A eval/deno/run_eval.ts --backend openai --model "$model" \
       --base-url "$url" --api-key "$key" \
       --chat-kwargs-json "$kwargs" --max-tokens 1024 \
@@ -93,3 +99,4 @@ if [[ "$MODE" == masked ]]; then
 else
   (cd site && deno task data)
 fi
+progress_emit "provider-sweep ($PROVIDER, ${MODE:-plain})" complete "$TOTAL_LEGS" "$TOTAL_LEGS" "done"
