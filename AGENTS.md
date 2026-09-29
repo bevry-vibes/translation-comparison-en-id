@@ -18,5 +18,5 @@ When a referenced skill applies with your project's tweaks, the local `<name>.md
 - Wrap every model-loading run with `eval/memguard.py`. Never bypass the fit check without an explicit user instruction.
 - Run at most one benchmark at a time. The run lock in `eval/memguard.py` enforces this.
 - Do not commit downloaded corpus archives (`data/*.zip`). Rebuild them with `eval/build_testset.py`.
-- Commit the measured results (`results/*.json`, `results/results.md`) with the runs that produced them.
+- Commit the measured results (`results/*.json`, `results/token-survival.md`) with the runs that produced them, refresh `site/src/data/results.json` via `eval/build_site_data.py`, and redeploy the results site (`cd site && npx wrangler@latest deploy`) so https://translation-comparison-en-id.bevry.workers.dev stays current. The results site replaces the retired `results/results.md` — do not reintroduce it.
 - Write Python with the standard library first. Add a dependency only when the standard library cannot do the job.

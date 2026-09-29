@@ -22,6 +22,7 @@ Everything below was checked against the live model hubs
 | Multiple local languages (Javanese, Sundanese) as well | **SEA-LION** (`Gemma-SEA-LION-v3-9B-IT`) or **Sahabat-AI** (`llama3-8b-cpt-sahabatai-v1`) | SEA-tuned LLMs, Indonesian + regional languages |
 | Deploying on Cloudflare Workers AI | **m2m100-1.2b** — the only id⇄en translation model there | Measured chrF 66.90 id→en (above local 4B tier), but 71.49 en→id (well below); segment first (it drops multi-sentence input) |
 | Hosted translation on QwenCloud MaaS | **qwen-flash** with a placeholder-preservation instruction (`qwen-mt-turbo` retires 2026-10-10; `qwen-mt-flash` fails masked-name token survival) | chrF 71.67 id→en / 82.06 en→id, 10/10 token survival both directions, raisable rate limits; see [token survival](#token-survival-masked-name-protection-added-2026-09-29) |
+| Hosted translation **off QwenCloud** (OpenRouter) | **qwen3-235b-a22b-2507** (best value) or **glm-5** (best id→en), with the `engine-preserve` instruction | 10/10 masked-name survival in both directions; chrF 73.71 id→en / 84.66 en→id (qwen3-235b) and 74.21 / 82.03 (glm-5) — both beat the QwenCloud interim pick; ~1.4–1.9 s/segment; DeepSeek V4 tops raw quality (77.10 id→en) but **fails masked-name survival**; see [the provider sweep](#the-off-qwencloud-provider-sweep-openrouter-deepseek-cline-opencode-2026-09-29) |
 | Hosted quality reference / fastest integration | **Kagi Translate** (via bevry-vibes/kagi-translate-client) | Best measured id→en (chrF **74.82**); ties TranslateGemma 4B on en→id; session-cookie client, no public API used |
 
 Rule of thumb: **specialised MT models (TranslateGemma, Hy-MT2) beat general local LLMs of the same size for Indonesian**, and a 4B specialised model is often better than a 12B general one.
@@ -530,7 +531,9 @@ Full per-segment failure detail: [results/token-survival.md](../results/token-su
   segments at all.
 
 **Rewritten recommendation** (supersedes the plain-text recommendation of 2026-09-28;
-a successor must pass token survival AND quality AND the 5-minute cron budget):
+a successor must pass token survival AND quality AND the 5-minute cron budget;
+**its qwen-flash pick was itself superseded later the same day by
+[the off-QwenCloud provider sweep](#the-off-qwencloud-provider-sweep-openrouter-deepseek-cline-opencode-2026-09-29)**):
 
 - **No qwen-mt survivor is both safe and raisable.** qwen-mt-flash (the earlier pick)
   and qwen-mt-plus fail token survival outright; qwen-mt-turbo, the model production
@@ -563,6 +566,113 @@ a successor must pass token survival AND quality AND the 5-minute cron budget):
   produces no token-safe candidate at all, the recommendation is: stay on
   qwen-mt-turbo until retirement, then fail over to the best survivor with review
   flags on every segment, or switch vendors.
+
+### The off-QwenCloud provider sweep: OpenRouter, DeepSeek, Cline, OpenCode (2026-09-29)
+
+QwenCloud's billing is the pain point, not the models — so this sweep evaluated every
+open-weight candidate served by the other gateways with keys on hand: **OpenRouter**
+(204 open-weight models; catalog via `GET /api/v1/models`), **DeepSeek official**
+(two ids live: `deepseek-flash` = V4.1-Flash and `deepseek-v4-pro`),
+**Cline** (`api.cline.bot` mirrors OpenRouter ids) and **OpenCode Zen** (account
+unfunded and its free-tier ids returned "Model is unavailable", so it contributed no
+runs). Qwen weights through another gateway are explicitly fine — it is QwenCloud the
+platform we are leaving. Driver: `scripts/run-providers.sh`; results labels are
+prefixed `or-` / `ds-` / `cl-` / `oc-` by provider.
+
+Methodology mirrors the replacement sweep: the production `engine` prompt over the same
+78+14-segment test set, temperature 0, sequential per-segment, with a new harness flag
+(`--chat-kwargs-json`) disabling reasoning where the gateway allows it (OpenRouter
+`{"reasoning":{"enabled":false}}`, DeepSeek `{"thinking":{"type":"disabled"}}`;
+glm-5.3-flash's endpoint mandates reasoning, so it ran with it on — billed but not
+leaked into content). Latency is network round trip per segment against warm models.
+
+**id → en (78 segments) — every model below is open-weight**
+
+| model (provider) | chrF | chrF++ | BLEU | s/sentence | $ in/out per 1M | masked survival |
+| --- | ---: | ---: | ---: | ---: | --- | --- |
+| Kagi Translate (reference) | **74.82** | **73.20** | 53.12 | 0.26 | n/a | not tested |
+| deepseek-flash (DeepSeek official) | **77.10** | 75.75 | **56.38** | 0.87 | 0.30/1.20 | **FAIL 9/10** |
+| deepseek-v4-pro (DeepSeek official) | 76.12 | 74.67 | 54.22 | 1.22 | 1.32/3.96 | **FAIL 6/10** |
+| deepseek/deepseek-v4-flash (OpenRouter) | 75.04 | 73.49 | 52.32 | 2.06 | 0.14/0.28 | **FAIL 7/10** |
+| z-ai/glm-5.3-flash (OpenRouter) | 74.85 | 73.32 | 51.60 | 3.11 | 0.15/0.50 | en→id FAIL 7/10 |
+| z-ai/glm-5 (OpenRouter) | 74.21 | 72.79 | 52.20 | 1.93 | 0.60/1.92 | **PASS 10/10** |
+| qwen/qwen3-235b-a22b-2507 (OpenRouter) | 73.71 | 72.20 | 50.99 | 1.63 | 0.0875/0.35 | **PASS 10/10** |
+| moonshotai/kimi-k2.5 (OpenRouter) | 73.39 | 71.89 | 51.06 | 2.14 | 0.45/2.25 | **PASS 10/10** |
+| qwen/qwen3.5-397b-a17b (OpenRouter) | 72.97 | 71.36 | 49.97 | 2.67 | 0.55/3.50 | **PASS 10/10** |
+| google/gemma-4-31b-it (OpenRouter) | 72.72 | 71.07 | 49.28 | 1.63 | 0.09/0.34 | **PASS 10/10** |
+| qwen/qwen3-30b-a3b-instruct-2507 (OpenRouter) | 71.86 | 70.18 | 48.77 | 2.28 | 0.048/0.19 | **PASS 10/10** |
+| nvidia/nemotron-3.5-lightning (OpenRouter) | 68.52 | 66.87 | 44.39 | 0.75 | 0.06/0.16 | **FAIL 4/10** |
+
+**en → id (14 segments)**
+
+| model (provider) | chrF | chrF++ | BLEU | s/sentence |
+| --- | ---: | ---: | ---: | ---: |
+| deepseek-flash (DeepSeek official) | **87.05** | 87.05 | **79.90** | 0.63 |
+| deepseek-v4-pro (DeepSeek official) | 86.17 | 86.35 | 79.20 | 1.19 |
+| qwen/qwen3.5-397b-a17b (OpenRouter) | 84.98 | 84.25 | 72.08 | 2.82 |
+| deepseek/deepseek-v4-flash (OpenRouter) | 84.85 | 84.56 | 72.86 | 2.61 |
+| qwen/qwen3-235b-a22b-2507 (OpenRouter) | 84.66 | 84.30 | 75.52 | 1.41 |
+| google/gemma-4-31b-it (OpenRouter) | 83.40 | 82.49 | 71.88 | 1.38 |
+| z-ai/glm-5.3-flash (OpenRouter) | 82.06 | 81.59 | 72.27 | 3.84 |
+| z-ai/glm-5 (OpenRouter) | 82.03 | 81.17 | 67.46 | 1.67 |
+| moonshotai/kimi-k2.5 (OpenRouter) | 81.21 | 81.44 | 73.49 | 2.56 |
+| qwen/qwen3-30b-a3b-instruct-2507 (OpenRouter) | 79.87 | 78.94 | 65.22 | 2.40 |
+| nvidia/nemotron-3.5-lightning (OpenRouter) | 73.29 | 72.28 | 54.47 | 0.74 |
+
+Token survival ran over the full set in both directions (`engine-preserve` prompt,
+`results/token-survival.md` has the per-segment detail). Findings:
+
+- **The raw-quality winner is disqualified for production.** The DeepSeek V4 family
+  sweeps the plain set — deepseek-flash posts the best id→en ever measured here
+  (77.10, +2.3 over Kagi, +5.2 over the retiring turbo) and ties the best en→id
+  (87.05, BLEU 79.90) — and then **drops masked names in the production direction**:
+  deepseek-flash 9/10, V4-pro 6/10, V4-flash-via-OpenRouter 7/10 id→en. The failure
+  mode is qwen-mt-flash's exactly: sentence-initial placeholder tokens rendered as
+  bare numbers ("1 is leading the community's weekly meeting…", "5 and 3 suggest that
+  participants register…"), even with the explicit preservation instruction. chrF
+  never sees it; the survival harness does. Without production masking this family
+  would be the answer — with it, it is the cautionary tale of this sweep.
+- **glm-5.3-flash fails en→id survival (7/10)** — the budget GLM is out despite
+  strong plain numbers; its sibling **glm-5 passes 10/10 in both directions** and is
+  the best token-safe id→en off QwenCloud (74.21).
+- **The token-safe set is genuinely good**: qwen3-235b-a22b-2507, glm-5, kimi-k2.5,
+  gemma-4-31b-it, qwen3.5-397b-a17b and even the micro qwen3-30b all post 10/10
+  survival both ways AND beat the retiring turbo's plain id→en (71.94). Two of them
+  beat the QwenCloud interim pick (qwen-flash 71.67) too.
+- **Provider reality check.** OpenRouter is the cleanest gateway of the four (working
+  key, best verified prices, preflight-402 unless `max_tokens` is set — the harness
+  now sends 1024). Cline's gateway mirrors OpenRouter ids but wraps responses in a
+  `{"data": …}` envelope (the harness unwraps it now) and **black-holed every batch
+  run** — single requests succeed, 78-segment runs hang past 5 minutes; unusable for
+  production. OpenCode Zen had no funds and dead free-tier ids. DeepSeek official is
+  cheap and fast but single-vendor (and the family fails masking anyway).
+- **Cron-budget caveat:** the token-safe winners run 1.4–2.7 s/segment sequential —
+  a 300-segment entry is 7–13 minutes single-threaded, past the 5-minute cron budget.
+  Production should run 3–4 concurrent requests (≈2–3 minutes) or accept the slower
+  pace; QwenCloud's qwen-flash (0.46 s/s) remains the only sub-second safe option if
+  sequential-5-minutes is a hard constraint.
+
+**Successor recommendation (supersedes the qwen-flash pick of the token-survival
+section for the QwenCloud exit; qwen-flash remains the fallback if staying on
+QwenCloud):**
+
+- **Primary: `qwen/qwen3-235b-a22b-2507` on OpenRouter with the `engine-preserve`
+  instruction.** 10/10 masked survival in both directions, 73.71 id→en (+1.8 vs the
+  retiring turbo, +2.0 vs the interim pick), 84.66 en→id (turbo-class), 1.4–1.6 s/s,
+  non-thinking (no reasoning leakage, no stalls), and by far the cheapest safe model
+  measured — a full 184-segment sweep costs about two cents, so even an aggressive
+  bulk rebuild is pennies under the key's $5 limit. Qwen weights, but through
+  OpenRouter — QwenCloud the platform is out of the loop.
+- **Premium alternative: `z-ai/glm-5`** — the best token-safe id→en off QwenCloud
+  (74.21, Kagi-level) at 5–8× the price; take it if id→en quality is worth the
+  premium, or as a second vendor for A/B drift checks.
+- **Failover (replaces glm-4.7-flash on Workers AI, which destroys masked names
+  0/10): `moonshotai/kimi-k2.5`** (73.39 id→en, 10/10+10/10, maker-diverse) or
+  `google/gemma-4-31b-it` (72.72, 10/10+10/10, Gemma licence). Never point the
+  failover at DeepSeek: an outage failover that drops names just converts downtime
+  into silent data corruption.
+- **Keep the safety net:** the survival assertion + review flags stay regardless of
+  model — the turbo baseline that production trusted failed the same probe set.
 
 ### Caveats on these numbers
 

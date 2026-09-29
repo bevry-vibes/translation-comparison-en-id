@@ -4,7 +4,7 @@ A survey of **free, locally runnable** AI models for translation between Indones
 
 - 📊 **[docs/model-survey.md](docs/model-survey.md)** — the survey: candidates, licences, published quality, hardware sizing, runtimes, evaluation options and the measured results from this repo.
 - 🇮🇩 **[docs/indonesian-notes.md](docs/indonesian-notes.md)** — linguistic/pipeline checklist (register, reduplication, `-nya`, numbers, entities, do-not-translate lists).
-- 📈 **[results/results.md](results/results.md)** — the benchmark table produced by the runs below.
+- 🌐 **[the results site](https://translation-comparison-en-id.bevry.workers.dev)** — every benchmark table, per-category breakdowns and masked-name token survival, served from a Cloudflare Worker; data rebuilt from `results/*.json` by `eval/build_site_data.py`.
 
 ## Quick start
 
@@ -24,9 +24,13 @@ python3 eval/run_eval.py --backend ollama --model translategemma:4b \
 # 4. or run the hosted sweeps (Cloudflare Workers AI + Kagi Translate + Qwen-MT; needs .env)
 bash scripts/run-cloud.sh all
 
-# 5. or run everything that is installed and render the table
+# 4b. or the off-QwenCloud provider sweep (OpenRouter + DeepSeek official; needs .env)
+bash scripts/run-providers.sh all both           # plain set, both directions
+bash scripts/run-providers.sh all both masked    # masked names -> token survival
+
+# 5. or run everything that is installed and refresh the results-site data
 bash scripts/run-bench.sh
-python3 eval/summarize.py
+python3 eval/build_site_data.py
 ```
 
 `scripts/run-bench.sh` auto-detects which backends are available (Ollama models, Argos, transformers) and skips the rest.
@@ -41,12 +45,13 @@ python3 eval/summarize.py
 | `eval/backends.py` | Ollama, OpenAI-compatible (LM Studio / llama-server / vLLM / hosted MaaS gateways), Transformers (NLLB, M2M-100, MADLAD, OPUS-MT), Argos, Cloudflare Workers AI (official SDK, NMT and chat shapes), Kagi Translate, and Qwen-MT (QwenCloud MaaS) adapters, plus the per-family prompt templates |
 | `eval/metrics.py` | corpus chrF / chrF++ / BLEU + per-sentence chrF; uses `sacrebleu` when installed, otherwise a stdlib fallback |
 | `eval/token_survival.py` | scores masked-set runs: did every token + index survive, was anything renumbered or left behind, and does every name round-trip after restoration; renders `results/token-survival.md` |
-| `eval/deno/run_eval.ts` | like-for-like Deno harness for the Workers AI sweep: same test set, same metric formulas, same results JSON and run lock, so `summarize.py` renders both clients into one table |
+| `eval/deno/run_eval.ts` | like-for-like Deno harness for the Workers AI sweep: same test set, same metric formulas, same results JSON and run lock, so `build_site_data.py` feeds both clients into one results site |
 | `eval/memguard.py` | RAM-fit check, single-run lock and Ollama model eviction — stops a benchmark from exhausting the machine's memory |
-| `eval/summarize.py` | renders `results/*.json` into `results/results.md` |
+| `eval/build_site_data.py` | renders `results/*.json` (plus token-survival scoring of the masked runs) into `site/src/data/results.json` for the results site |
 | `scripts/pull-models.sh` | model acquisition, including the HF-CDN redirect workaround for Ollama |
 | `scripts/run-bench.sh` | builds the test set, runs every available backend, regenerates the table |
-| `scripts/run-cloud.sh` | runs the hosted sweeps (Cloudflare Workers AI, Kagi Translate) in both directions, then regenerates the table |
+| `scripts/run-cloud.sh` | runs the hosted sweeps (Cloudflare Workers AI, Kagi Translate) in both directions, then refreshes the results-site data |
+| `scripts/run-providers.sh` | runs the off-QwenCloud provider sweep (OpenRouter + DeepSeek official, plain or `masked`) in both directions, then refreshes the results-site data |
 
 Design choices worth knowing:
 
@@ -66,14 +71,16 @@ Every model-loading run is wrapped by `eval/memguard.py`:
 
 Server-side, start Ollama with `OLLAMA_MAX_LOADED_MODELS=1 OLLAMA_NUM_PARALLEL=1` so it can never hold two models at once (these are read at server startup only). The lock does not cover `pip install torch` (≈2 GB). Do not install packages while a benchmark runs.
 
-## Hosted providers (Cloudflare Workers AI + Kagi Translate + Qwen-MT)
+## Hosted providers (Cloudflare Workers AI + Kagi Translate + Qwen-MT + off-QwenCloud gateways)
 
-The hosted backends load no model on this machine, so `memguard` skips the RAM fit check for them; the single-run lock still applies. `bash scripts/run-cloud.sh [cloudflare|kagi|qwen|qwen-chat|glm|replacement|both|all] [id-en|en-id|both]` runs each provider's sweep in both directions and regenerates the table.
+The hosted backends load no model on this machine, so `memguard` skips the RAM fit check for them; the single-run lock still applies. `bash scripts/run-cloud.sh [cloudflare|kagi|qwen|qwen-chat|glm|replacement|both|all] [id-en|en-id|both]` runs each provider's sweep in both directions and refreshes the results-site data.
 
 - `qwen` — the `qwen-mt` dedicated translation family through `translation_options`.
 - `qwen-chat` — regular QwenCloud chat models (`qwen-flash`, `qwen3.6-flash`, `qwen3.5-flash` — the console-raisable-rate-limit set) through the compatible-mode endpoint with the production `engine` prompt.
 - `glm` — the production Workers AI chat fallback (`@cf/zai-org/glm-4.7-flash`) through the same `engine` prompt.
 - `replacement` — the qwen-mt-turbo retirement sweep in one go: `qwen-mt-flash` (survivor) + `qwen-mt-turbo` (retiring baseline) + the chat set + glm.
+
+`bash scripts/run-providers.sh [openrouter|deepseek|cline|all] [id-en|en-id|both] [plain|masked]` runs the off-QwenCloud sweep: twelve open-weight models (qwen3, glm-5, kimi-k2.5, gemma-4, deepseek-v4 tiers, nemotron) through OpenRouter and DeepSeek official, with gateway reasoning switches disabled where possible. `masked` runs the same models over the masked-name set with `engine-preserve` for token-survival scoring. Cline is wired but its gateway black-holes batch runs (documented in the survey); OpenCode Zen is not wired (unfunded account, dead free-tier ids as of 2026-09-29).
 
 Setup:
 
@@ -84,6 +91,9 @@ CLOUDFLARE_ACCOUNT_ID=...       # your Cloudflare account id
 KAGI_SESSION=...                # the kagi_session cookie of translate.kagi.com
 KAGI_CLIENT_REPO=/path/to/kagi-translate-client   # clone of bevry-vibes/kagi-translate-client
 QWENCLOUD_API_KEY=...           # QwenCloud MaaS API key (maas.qwencloudapi.com)
+OPENROUTER_API_KEY=...          # openrouter.ai key (the off-QwenCloud sweep)
+DEEPSEEK_API_KEY=...            # api.deepseek.com key (the off-QwenCloud sweep)
+CLINE_API_KEY=...               # api.cline.bot key (gateway unstable for batch runs)
 
 # one-time bootstrap (uv; never bare pip on the system)
 uv venv .venv
@@ -123,7 +133,28 @@ python3 eval/build_masked_testset.py
 .venv/bin/python eval/run_eval.py --backend qwen --model qwen-mt-lite \
   --prompt-style none --testset data/masked.jsonl --src id --tgt en --name qwen-mt-lite-masked
 python3 eval/token_survival.py   # renders results/token-survival.md
+
+# OpenRouter model through the production `engine` prompt (reasoning disabled, capped
+# completions so the credit preflight passes; results labelled or-*)
+.venv/bin/python eval/run_eval.py --backend openai --model qwen/qwen3-235b-a22b-2507 \
+  --base-url https://openrouter.ai/api/v1 --api-key "$OPENROUTER_API_KEY" \
+  --chat-kwargs-json '{"reasoning":{"enabled":false}}' --max-tokens 1024 \
+  --prompt-style engine --src id --tgt en --name or-qwen3-235b-a22b-2507
 ```
+
+## The results site
+
+`site/` is a Vite + React + shadcn/ui single-pager served by a Cloudflare Worker with
+static assets. Rebuild and redeploy:
+
+```bash
+.venv/bin/python eval/build_site_data.py   # results/*.json -> site/src/data/results.json
+cd site && npm run build
+cd site && npx wrangler@latest deploy      # needs a wrangler login (OAuth) or a
+                                           # CLOUDFLARE_API_TOKEN with Workers scripts+assets edit
+```
+
+Live at **https://translation-comparison-en-id.bevry.workers.dev**.
 
 Notes:
 
