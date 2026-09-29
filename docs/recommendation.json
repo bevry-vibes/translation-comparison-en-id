@@ -1,0 +1,64 @@
+{
+  "updated": "2026-09-29",
+  "summary": "qwen-mt-turbo (the production translator) retires 2026-10-10. A successor must pass strict masked-name token survival, match turbo-class quality, and fit the 5-minute cron budget. The 2026-09-29 off-QwenCloud provider sweep re-measured 12 open-weight models on both directions plus the masked set.",
+  "primary": {
+    "model": "qwen/qwen3-235b-a22b-2507",
+    "provider": "OpenRouter",
+    "prompt": "engine-preserve",
+    "why": [
+      "10/10 masked-name token survival in both directions",
+      "73.71 chrF id->en (+1.8 over the retiring qwen-mt-turbo, +2.0 over the QwenCloud interim pick)",
+      "84.66 chrF en->id (turbo-class; direction re-measured on the balanced 78-segment set)",
+      "non-thinking: no reasoning leakage, no mid-sweep stalls, 1.4-1.6 s/segment",
+      "cheapest safe model measured: a full two-direction sweep costs about two cents"
+    ]
+  },
+  "alternatives": [
+    {
+      "model": "z-ai/glm-5",
+      "provider": "OpenRouter",
+      "role": "premium alternative",
+      "why": "best token-safe id->en off QwenCloud (74.21, Kagi-level) at 5-8x the price; take it if id->en quality is worth the premium or as a second vendor for drift checks"
+    },
+    {
+      "model": "moonshotai/kimi-k2.5",
+      "provider": "OpenRouter",
+      "role": "failover",
+      "why": "73.39 id->en, 10/10 survival both directions, maker-diverse from the primary"
+    },
+    {
+      "model": "google/gemma-4-31b-it",
+      "provider": "OpenRouter",
+      "role": "failover alternative",
+      "why": "72.72 id->en, 10/10 survival both directions, permissive Gemma licence"
+    }
+  ],
+  "disqualified": [
+    {
+      "models": ["deepseek-flash", "deepseek-v4-pro", "deepseek/deepseek-v4-flash"],
+      "reason": "the raw-quality winners (77.10 id->en, 87.05 en->id for deepseek-flash) drop masked names in the production direction (9/10, 6/10, 7/10): sentence-initial protection tokens rendered as bare numbers, even with the preservation instruction"
+    },
+    {
+      "models": ["z-ai/glm-5.3-flash"],
+      "reason": "fails masked survival en->id (7/10); its endpoint also mandates reasoning"
+    },
+    {
+      "models": ["@cf/zai-org/glm-4.7-flash"],
+      "reason": "destroys masked names 0/10 with and without the instruction - must not be the outage failover"
+    },
+    {
+      "models": ["qwen-mt-flash", "qwen-mt-plus"],
+      "reason": "fail id->en masked survival (2/10, 1/10); qwen-mt-lite passes raw but inherits the family's non-raisable caps and single-vendor retirement risk"
+    }
+  ],
+  "caveats": [
+    "token-safe models run 1.4-2.7 s/segment sequential: a 300-segment entry needs 3-4 concurrent requests to hold the 5-minute cron budget; QwenCloud's qwen-flash (0.46 s/s, 10/10 survival, raisable limits) remains the sub-minute option if staying on QwenCloud",
+    "the survival assertion + review flags stay regardless of model: the turbo baseline production trusted also failed the adversarial probe set",
+    "qwen-mt-turbo retires 2026-10-10; until the switch, it remains the production model"
+  ],
+  "history": [
+    "2026-09-28: qwen-mt-flash recommended on plain chrF alone",
+    "2026-09-29 (morning): superseded by masked-name token survival; qwen-flash + engine-preserve picked as the QwenCloud interim",
+    "2026-09-29 (day): off-QwenCloud provider sweep; qwen3-235b-a22b-2507 on OpenRouter becomes the primary recommendation"
+  ]
+}

@@ -27,6 +27,28 @@ Everything below was checked against the live model hubs
 
 Rule of thumb: **specialised MT models (TranslateGemma, Hy-MT2) beat general local LLMs of the same size for Indonesian**, and a 4B specialised model is often better than a 12B general one.
 
+## Current recommendation (2026-09-29)
+
+Mirrors [docs/recommendation.json](recommendation.json) and
+[the results site](https://translation-comparison-en-id.bevry.workers.dev) (canonical for live
+numbers). `qwen-mt-turbo` — the production translator — retires 2026-10-10; a successor must
+pass strict masked-name token survival, match turbo-class quality, and fit the 5-minute cron
+budget.
+
+- **Primary: `qwen/qwen3-235b-a22b-2507` on OpenRouter with the `engine-preserve` instruction**
+  — 10/10 survival both directions, turbo-class quality (73.71 chrF id→en, 84.66 en→id on the
+  14-segment v1 set; re-measured on the balanced 78-segment v2 set), non-thinking, ~2 cents per
+  full sweep. Qwen weights, but QwenCloud the platform is out of the loop.
+- **Premium alternative: `z-ai/glm-5`** (best token-safe id→en off QwenCloud, 74.21) ·
+  **failover: `moonshotai/kimi-k2.5`** or **`google/gemma-4-31b-it`** (both 10/10 + 10/10).
+- **Disqualified:** the DeepSeek V4 family (best raw quality; drops masked names in the
+  production direction), glm-5.3-flash (fails en→id survival), glm-4.7-flash on Workers AI
+  (0/10 — never the outage failover), qwen-mt-flash/plus (fail id→en survival).
+- History: plain-chrF pick of qwen-mt-flash (2026-09-28) → qwen-flash interim after the
+  masked-set discovery (2026-09-29 morning) → the provider sweep's qwen3-235b pick (2026-09-29).
+  Full reasoning: [the token-survival section](#token-survival-masked-name-protection-added-2026-09-29)
+  and [the provider sweep](#the-off-qwencloud-provider-sweep-openrouter-deepseek-cline-opencode-2026-09-29).
+
 ## How this was researched
 
 - Live Hugging Face API queries (`/api/models`, `/api/datasets`) for sizes, licenses, language tags and download counts.
@@ -300,6 +322,12 @@ strong instruction following.
 **If you must run with no LLM runtime at all** (embedded, old CPUs, offline appliances): quickmt (185M, CC-BY-4.0 — best published chrF of the tiny tier), Argos Translate, or `opus-mt-id-en`/`opus-mt-en-id` via CTranslate2 — a few hundred MB of RAM, sub-second latency, trivially batchable.
 
 ## Measured results on this machine
+
+> **Point-in-time snapshots.** The tables below freeze the numbers as measured on the dates
+> given (they double as drift controls when rows are re-run). The canonical, current results —
+> including the balanced testset-v2 re-measurements — live on
+> [the results site](https://translation-comparison-en-id.bevry.workers.dev); new runs are not
+> transcribed back into this document.
 
 Setup: AMD Ryzen 5 7640U, 12 threads, 15 GB RAM, **no GPU**, Ollama 0.34.2 (CPU inference), Python 3.14, `sacrebleu` 2.6 metrics. Test set produced by `eval/build_testset.py`: 20 FLORES-101 devtest pairs (professional, formal/news), 40 Tatoeba pairs (short everyday sentences), 18 hand-written `id→en` + 14 `en→id` tricky cases (register, idioms, numbers, do-not-translate entities, long sentences). Model load time is excluded (warm-up call first).
 

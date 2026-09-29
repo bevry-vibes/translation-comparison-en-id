@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """Build site/src/data/results.json for the benchmark-results website.
 
-Reads results/*.json plus the scored token-survival matrix
-(results/token-survival.json, emitted by `eval/token_survival.py` — the single
-scoring implementation) and emits a single JSON document consumed by the Vite
-site in site/.
+Inputs (all in-repo, single-sourced):
+  - results/*.json                one benchmark run per file
+  - results/token-survival.json   the scored masked-name matrix (eval/token_survival.py)
+  - docs/recommendation.json      the current model recommendation (mirrored by the survey)
+  - eval/backends.py              the verbatim prompt templates (imported, never copied)
+  - eval/providers.py             the provider manifest (labels, endpoints, gateway flags)
 
-Main tables cover only default-testset runs; masked-testset runs appear only
-through the scored survival matrix. Samples are capped at the best/worst 5 by
-chrF per run to keep the payload small.
+Emits one JSON document consumed by the Vite site in site/. Main tables cover
+only default-testset runs (any testset-*.jsonl); masked runs surface through
+the survival matrix. Samples are capped at the best/worst 5 by chrF per run.
 
 Usage: python3 eval/build_site_data.py
 """
@@ -16,44 +18,104 @@ Usage: python3 eval/build_site_data.py
 from __future__ import annotations
 
 import json
+import shlex
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "eval"))
+
+import backends  # noqa: E402
+import providers  # noqa: E402
 
 OUT = ROOT / "site" / "src" / "data" / "results.json"
 SURVIVAL_JSON = ROOT / "results" / "token-survival.json"
+RECOMMENDATION_JSON = ROOT / "docs" / "recommendation.json"
 
-# backend -> (provider label, hosted)
-PROVIDERS = {
-    "qwen": ("Qwen MT (hosted API)", True),
-    "openai": ("Qwen Chat (hosted API)", True),
-    "cloudflare": ("Cloudflare Workers AI", True),
-    "cloudflare-chat": ("Cloudflare Workers AI", True),
-    "cloudflare-deno": ("Cloudflare Workers AI", True),
-    "kagi": ("Kagi Translate", True),
-    "ollama": ("Local (Ollama)", False),
-}
+SAMPLE_CAP = 5  # best N and worst N by chrF per run
 
-# openai-compat runs are shared by several hosted gateways; the result-file
-# label prefix (see scripts/run-providers.sh) says which one served the run
-OPENAI_LABEL_PROVIDERS = {
-    "or-": "OpenRouter",
-    "ds-": "DeepSeek (official API)",
-    "cl-": "Cline",
-    "oc-": "OpenCode Zen",
+PROMPT_DESCRIPTIONS = {
+    "engine": "the production translation-engine system instruction; the raw source text is the user message",
+    "engine-preserve": "engine plus an explicit keep-the-protection-tokens-verbatim clause (masked segments)",
+    "none": "raw source text only — dedicated NMT models; the qwen-mt family adds translation_options",
+    "generic": "plain translate-this instruction for general local LLMs",
+    "translate_gemma": "the template from the TranslateGemma technical report (its evaluation prompt)",
+    "hymt2": "Tencent Hy-MT's instruction wording",
 }
 
 
 def provider_of(payload: dict) -> tuple[str, bool]:
-    provider, hosted = PROVIDERS.get(payload["backend"], (payload["backend"], True))
-    if payload["backend"] == "openai":
-        for prefix, label in OPENAI_LABEL_PROVIDERS.items():
-            if payload["label"].startswith(prefix):
-                return label, hosted
-    return provider, hosted
+    """(provider label, hosted) for a run payload."""
+    backend = payload["backend"]
+    entry, is_openai = providers.openai_provider_for(payload["label"])
+    if is_openai and entry:
+        return entry["label"], True
+    info = providers.BACKENDS.get(backend, {})
+    return info.get("label", backend), info.get("hosted", True)
 
-SAMPLE_CAP = 5  # best N and worst N by chrF per run
+
+def replication_for(payload: dict) -> dict:
+    """A ready-to-run recipe for one run: command + request shape + notes."""
+    label, model, src, tgt = payload["label"], payload["model"], payload["src"], payload["tgt"]
+    style = payload["prompt_style"]
+    backend = payload["backend"]
+    entry, is_openai = providers.openai_provider_for(label)
+    py = ".venv/bin/python eval/run_eval.py"
+    if is_openai and entry:
+        kwargs = entry["chat_kwargs"]
+        kwargs_arg = f" --chat-kwargs-json {shlex.quote(json.dumps(kwargs))}" if kwargs else ""
+        command = (
+            f"{py} --backend openai --model {model} --base-url {entry['base_url']} "
+            f"--api-key \"${entry['key_env']}\"{kwargs_arg} --max-tokens {entry['max_tokens']} "
+            f"--prompt-style {style} --src {src} --tgt {tgt} --name {label}"
+        )
+        return {
+            "command": command,
+            "base_url": entry["base_url"],
+            "key_env": entry["key_env"],
+            "chat_kwargs": kwargs or None,
+            "max_tokens": entry["max_tokens"],
+            "notes": [entry["note"]] if entry.get("note") else [],
+        }
+    if backend == "qwen":
+        target = "English" if tgt == "en" else "Indonesian"
+        body = {
+            "model": model,
+            "messages": [{"role": "user", "content": "<raw source text>"}],
+            "translation_options": {"source_lang": "auto", "target_lang": target},
+        }
+        return {
+            "command": f"{py} --backend qwen --model {model} --prompt-style none "
+                       f"--src {src} --tgt {tgt} --name {label}",
+            "base_url": providers.BACKENDS["qwen"]["base_url"],
+            "key_env": "QWENCLOUD_API_KEY",
+            "request_body": body,
+            "notes": ["no prompt: the qwen-mt contract is the raw text plus translation_options"],
+        }
+    if backend in ("cloudflare", "cloudflare-chat"):
+        sub = "cloudflare" if backend == "cloudflare" else "cloudflare-chat"
+        return {
+            "command": f"{py} --backend {sub} --model '{model}' --prompt-style {style} "
+                       f"--src {src} --tgt {tgt} --name {label}",
+            "key_env": "CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID",
+            "notes": [],
+        }
+    if backend == "kagi":
+        return {
+            "command": f"{py} --backend kagi --kagi-runtime python --prompt-style none "
+                       f"--src {src} --tgt {tgt} --name {label}",
+            "key_env": "KAGI_SESSION + KAGI_CLIENT_REPO",
+            "notes": ["drives translate.kagi.com through bevry-vibes/kagi-translate-client"],
+        }
+    if backend == "ollama":
+        return {
+            "command": f"{py} --backend ollama --model '{model}' --prompt-style {style} "
+                       f"--src {src} --tgt {tgt} --name {label}",
+            "base_url": "http://127.0.0.1:11434",
+            "notes": ["local model: wrap big loads in eval/memguard.py (run_eval does)"],
+        }
+    return {"command": f"# no replication recipe for backend {backend!r}", "notes": []}
 
 
 def capped_samples(samples: list[dict]) -> tuple[list[dict], bool]:
@@ -79,6 +141,7 @@ def run_row(payload: dict) -> dict:
         "provider": provider,
         "hosted": hosted,
         "pairs": payload["pairs"],
+        "testset": payload.get("testset", "testset.jsonl"),
         "metrics": payload["metrics"],
         "metric_backend": payload["metric_backend"],
         "exact_match_rate": payload.get("exact_match_rate"),
@@ -87,6 +150,7 @@ def run_row(payload: dict) -> dict:
         "chrf_by_category": payload.get("chrF_by_category", {}),
         "samples_capped": False,  # filled below
         "samples": [],
+        "replication": replication_for(payload),
         "best": {},  # filled per direction below
     }
     row["samples"], row["samples_capped"] = capped_samples(payload["samples"])
@@ -121,6 +185,35 @@ def mark_best(rows: list[dict]) -> None:
             r["best"]["speed"] = True
 
 
+def prompt_catalogue() -> dict:
+    """The verbatim prompt templates, generated from eval/backends.py (never copied)."""
+    placeholder = "SOURCE_TEXT_GOES_HERE"
+    catalogue = {}
+    for style in ("generic", "translate_gemma", "hymt2", "none"):
+        catalogue[style] = {
+            "description": PROMPT_DESCRIPTIONS[style],
+            "user_message": backends.build_prompt(placeholder, "id", "en", style),
+            "system_message": None,
+        }
+    for style in ("engine", "engine-preserve"):
+        system = (backends.engine_system_prompt("id", "en") if style == "engine"
+                  else backends.engine_preserve_system_prompt("id", "en"))
+        catalogue[style] = {
+            "description": PROMPT_DESCRIPTIONS[style],
+            "user_message": "<raw source text>",
+            "system_message": system,
+        }
+    catalogue["qwen-mt-request"] = {
+        "description": "the qwen-mt family takes no prompt: the raw text plus translation_options",
+        "request_body": {
+            "model": "qwen-mt-*",
+            "messages": [{"role": "user", "content": "<raw source text>"}],
+            "translation_options": {"source_lang": "auto", "target_lang": "English | Indonesian"},
+        },
+    }
+    return catalogue
+
+
 def main() -> None:
     main_runs: dict[str, list[dict]] = {}
     for path in sorted((ROOT / "results").glob("*.json")):
@@ -133,6 +226,7 @@ def main() -> None:
         main_runs.setdefault(direction, []).append(run_row(payload))
 
     survival = survival_rows()
+    recommendation = json.loads(RECOMMENDATION_JSON.read_text(encoding="utf-8"))
 
     directions = []
     for direction in sorted(main_runs):
@@ -164,6 +258,8 @@ def main() -> None:
         "token_survival": sorted(
             survival, key=lambda s: (s["direction"], -s["passed"] / s["total"], s["model"])
         ),
+        "prompts": prompt_catalogue(),
+        "recommendation": recommendation,
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")

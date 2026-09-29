@@ -1,0 +1,21 @@
+# Indonesian <-> English translation benchmark
+
+Agent-oriented map of this project. Live results: https://translation-comparison-en-id.bevry.workers.dev
+Repo: https://github.com/bevry-vibes/translation-comparison-en-id
+
+## What this is
+
+A benchmark harness comparing translation models (open-weight LLMs via hosted gateways,
+dedicated NMT, local Ollama models, hosted translators) for Indonesian<->English, scored with
+sacrebleu chrF/chrF++/BLEU plus a strict masked-name token-survival protocol. It exists to pick
+and supervise the production translator of a website, and currently recommends
+`qwen/qwen3-235b-a22b-2507` on OpenRouter with the `engine-preserve` instruction.
+
+## Where to look
+
+- Interpreting or comparing results: results/README.md in the repo (read this first — comparability rules, replication commands)
+- Live tables, per-category chrF, masked-name survival: the site (sections: Quality / Token survival toggle, Category chrF, Current recommendation, Prompts & replication)
+- The model survey and decision history: docs/model-survey.md
+- Indonesian linguistic pipeline checklist: docs/indonesian-notes.md
+- Harness: eval/run_eval.py (CLI), eval/backends.py (providers + verbatim prompt templates), eval/token_survival.py (survival scoring), eval/build_site_data.py (site data builder)
+- Sweeps: scripts/run-providers.sh (OpenRouter + DeepSeek), scripts/run-cloud.sh (QwenCloud + Cloudflare + Kagi)
