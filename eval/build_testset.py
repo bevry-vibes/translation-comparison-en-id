@@ -36,8 +36,18 @@ TATOEBA_URL = "https://object.pouta.csc.fi/OPUS-Tatoeba/v2023-04-12/moses/en-id.
 
 
 def http_json(url: str) -> dict:
-    with urllib.request.urlopen(url, timeout=60) as resp:  # noqa: S310 - fixed host
-        return json.loads(resp.read().decode("utf-8"))
+    import time
+    last: Exception | None = None
+    for attempt in range(4):  # the datasets-server occasionally 502s; brief backoff
+        try:
+            with urllib.request.urlopen(url, timeout=60) as resp:  # noqa: S310 - fixed host
+                return json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            if exc.code not in (502, 503, 504) or attempt == 3:
+                raise
+            last = exc
+            time.sleep(3 * 2 ** attempt)
+    raise last  # unreachable: the loop returns or raises
 
 
 def flores_rows(lang: str, offset: int, length: int) -> list[dict]:
@@ -66,6 +76,31 @@ def load_flores(limit: int) -> list[dict]:
                 "category": "flores-devtest",
                 "source": row["row"]["sentence"].strip(),
                 "reference": by_id_en[key].strip(),
+            })
+    return pairs[:limit]
+
+
+def load_flores_enid(offset: int, limit: int) -> list[dict]:
+    """FLORES-101 devtest en->id pairs from the row window [offset, offset+limit).
+
+    A different window than the id->en sample so no sentence appears in both
+    directions; ids carry an `-enid` infix so they never collide.
+    """
+    if limit <= 0:
+        return []
+    id_rows = flores_rows("id", offset, limit)
+    en_rows = flores_rows("en", offset, limit)
+    by_id_id = {row["row"]["id"]: row["row"]["sentence"] for row in id_rows}
+    pairs = []
+    for row in en_rows:
+        key = row["row"]["id"]
+        if key in by_id_id:
+            pairs.append({
+                "id": f"flores-enid-{key}",
+                "src": "en", "tgt": "id",
+                "category": "flores-devtest",
+                "source": row["row"]["sentence"].strip(),
+                "reference": by_id_id[key].strip(),
             })
     return pairs[:limit]
 
@@ -107,21 +142,52 @@ def read_tatoeba_pairs(archive: Path) -> list[tuple[str, str]]:
                 if e.strip() and i.strip()]
 
 
-def load_tatoeba(limit: int, seed: int = 13) -> list[dict]:
+def tatoeba_candidates() -> list[tuple[str, str]]:
+    """Length-filtered (en, id) sentence pairs, in archive order."""
     archive = ensure_tatoeba_zip()
-    if not archive or limit <= 0:
+    if not archive:
         return []
     pairs = []
     for en, idn in read_tatoeba_pairs(archive):
         if 15 <= len(idn) <= 110 and 15 <= len(en) <= 110:
             pairs.append((en, idn))
+    return pairs
+
+
+def select_tatoeba(limit: int, seed: int, exclude: set[tuple[str, str]]) -> list[tuple[str, str]]:
     rng = random.Random(seed)
+    pairs = tatoeba_candidates()
     rng.shuffle(pairs)
     out = []
-    for i, (en, idn) in enumerate(pairs[:limit]):
+    for pair in pairs:
+        if pair in exclude:
+            continue
+        out.append(pair)
+        if len(out) >= limit:
+            break
+    return out
+
+
+def load_tatoeba(limit: int, seed: int = 13) -> list[dict]:
+    pairs = select_tatoeba(limit, seed, exclude=set())
+    out = []
+    for i, (en, idn) in enumerate(pairs):
         out.append({
             "id": f"tatoeba-{i:04d}", "src": "id", "tgt": "en",
             "category": "tatoeba", "source": idn, "reference": en,
+        })
+    return out
+
+
+def load_tatoeba_enid(limit: int, exclude: set[tuple[str, str]]) -> list[dict]:
+    """Tatoeba en->id pairs from a differently-seeded shuffle, skipping every
+    pair already used by the id->en sample; ids carry an `-enid` infix."""
+    pairs = select_tatoeba(limit, seed=17, exclude=exclude)
+    out = []
+    for i, (en, idn) in enumerate(pairs):
+        out.append({
+            "id": f"tatoeba-enid-{i:04d}", "src": "en", "tgt": "id",
+            "category": "tatoeba", "source": en, "reference": idn,
         })
     return out
 
@@ -135,12 +201,21 @@ def load_curated() -> list[dict]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--flores", type=int, default=20, help="FLORES-101 devtest pairs")
-    parser.add_argument("--tatoeba", type=int, default=40, help="Tatoeba id->en pairs")
+    parser.add_argument("--flores", type=int, default=20, help="FLORES-101 devtest pairs (id->en)")
+    parser.add_argument("--tatoeba", type=int, default=40, help="Tatoeba pairs (id->en)")
+    parser.add_argument("--flores-enid", type=int, default=0,
+                        help="FLORES-101 devtest pairs (en->id, from a later row window)")
+    parser.add_argument("--tatoeba-enid", type=int, default=0,
+                        help="Tatoeba pairs (en->id, differently seeded, disjoint from id->en)")
     parser.add_argument("--out", default=str(DATA / "testset.jsonl"))
     args = parser.parse_args()
 
     entries = load_curated() + load_flores(args.flores) + load_tatoeba(args.tatoeba)
+    if args.flores_enid or args.tatoeba_enid:
+        # the en->id sample must not reuse any id->en Tatoeba pair
+        used = {(entry["reference"], entry["source"])
+                for entry in entries if entry["src"] == "id" and entry["tgt"] == "en"}
+        entries += load_flores_enid(20, args.flores_enid) + load_tatoeba_enid(args.tatoeba_enid, used)
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("w", encoding="utf-8") as fh:
