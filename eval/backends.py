@@ -351,10 +351,9 @@ class ArgosBackend:
         return Result(out, time.perf_counter() - started, f"argos-{src}-{tgt}", "argos")
 
 
-class CloudflareBackend:
-    """Cloudflare Workers AI hosted translation models
-    (https://developers.cloudflare.com/workers-ai/), via the official `cloudflare`
-    SDK (requirements.txt).
+class _CloudflareBase:
+    """Shared Workers AI plumbing: official-SDK client loading, warmup, and the
+    generic `ai/run` request path.
 
     The typed `ai.run()` helper URL-encodes the slash-bearing model id
     ("@cf/meta/m2m100-1.2b") and Cloudflare answers "No route for that URI"
@@ -387,17 +386,24 @@ class CloudflareBackend:
         except Exception as exc:  # pragma: no cover - warmup is best effort
             print(f"[warn] warmup failed for {self.name}: {exc}")
 
-    def translate(self, texts: list[str], src: str, tgt: str) -> Result:
+    def _run(self, body: dict) -> dict:
         client = self._load()
         path = f"/accounts/{self.account_id}/ai/run/{self.model}"
+        body = client.post(path, body=body, cast_to=object)
+        if not isinstance(body, dict) or not body.get("success"):
+            raise RuntimeError(f"cloudflare: bad envelope from {self.model}: {str(body)[:200]}")
+        return body.get("result") or {}
+
+
+class CloudflareBackend(_CloudflareBase):
+    """Cloudflare Workers AI hosted translation models
+    (https://developers.cloudflare.com/workers-ai/)."""
+
+    def translate(self, texts: list[str], src: str, tgt: str) -> Result:
         out: list[str] = []
         started = time.perf_counter()
         for text in texts:
-            body = client.post(path, body={"text": text, "source_lang": src, "target_lang": tgt},
-                               cast_to=object)
-            if not isinstance(body, dict) or not body.get("success"):
-                raise RuntimeError(f"cloudflare: bad envelope from {self.model}: {str(body)[:200]}")
-            result = body.get("result") or {}
+            result = self._run({"text": text, "source_lang": src, "target_lang": tgt})
             if "translated_text" in result:  # m2m100-style: a single string
                 out.append(str(result["translated_text"]).strip())
             elif "translations" in result:  # indictrans2-style: a list of segments
@@ -461,54 +467,21 @@ class QwenMtBackend:
         return Result(out, time.perf_counter() - started - waited, self.model, "qwen")
 
 
-class WorkersAiChatBackend:
+class WorkersAiChatBackend(_CloudflareBase):
     """A chat-completion model on Cloudflare Workers AI, prompted to translate —
     the production fallback shape, verbatim from patipeaceplace's
     `plugins/auto-translate/src/providers.mjs` (`glmTranslate`): the `engine`
     system instruction plus the raw source text, `stream: false`, and only
     `choices[0].message.content` read (`result.response` tolerated). Reasoning
     arrives as a separate `reasoning` field, exactly as production sees it.
-
-    The model id contains `/` — the SDK's URL-encoding bug still applies, so
-    calls go through the SDK's generic request path (see `CloudflareBackend`).
     """
 
-    loads_local_model = False  # hosted: run_eval skips the RAM fit check, the run lock still applies
-
-    def __init__(self, model: str, account_id: str, api_token: str) -> None:
-        self.model = model
-        self.account_id = account_id
-        self.api_token = api_token
-        self._client = None
-
-    @property
-    def name(self) -> str:
-        return f"cloudflare:{self.model}"
-
-    def _load(self):
-        if self._client is None:
-            from cloudflare import Cloudflare  # lazy: the local backends stay install-free
-
-            self._client = Cloudflare(api_token=self.api_token)
-        return self._client
-
-    def warmup(self, src: str, tgt: str) -> None:
-        try:
-            self.translate(["Halo."], src, tgt)
-        except Exception as exc:  # pragma: no cover - warmup is best effort
-            print(f"[warn] warmup failed for {self.name}: {exc}")
-
     def translate(self, texts: list[str], src: str, tgt: str) -> Result:
-        client = self._load()
-        path = f"/accounts/{self.account_id}/ai/run/{self.model}"
         out: list[str] = []
         started = time.perf_counter()
         for text in texts:
-            body = client.post(path, body={"messages": build_messages(text, src, tgt, "engine"),
-                                           "stream": False}, cast_to=object)
-            if not isinstance(body, dict) or not body.get("success"):
-                raise RuntimeError(f"cloudflare: bad envelope from {self.model}: {str(body)[:200]}")
-            result = body.get("result") or {}
+            result = self._run({"messages": build_messages(text, src, tgt, "engine"),
+                                "stream": False})
             translated = result.get("choices", [{}])[0].get("message", {}).get("content") \
                 if isinstance(result.get("choices"), list) and result["choices"] \
                 else result.get("response")
@@ -518,6 +491,7 @@ class WorkersAiChatBackend:
                 )
             out.append(translated.strip())
         return Result(out, time.perf_counter() - started, self.model, "cloudflare-chat")
+
 
 
 class KagiBackend:

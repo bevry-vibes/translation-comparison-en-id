@@ -78,52 +78,72 @@ def load_pairs(path: Path, src: str, tgt: str) -> list[dict]:
     return pairs
 
 
+def _openai_factory(args):
+    try:
+        extra = json.loads(args.chat_kwargs_json) if args.chat_kwargs_json.strip() else {}
+    except json.JSONDecodeError as exc:
+        raise SystemExit(f"--chat-kwargs-json is not valid JSON: {exc}")
+    if not isinstance(extra, dict):
+        raise SystemExit("--chat-kwargs-json must decode to a JSON object")
+    return OpenAICompatBackend(args.model, base_url=args.base_url, api_key=args.api_key,
+                               prompt_style=args.prompt_style, temperature=args.temperature,
+                               extra_payload=extra, max_tokens=args.max_tokens)
+
+
+def _cloudflare_factory(args):
+    token = args.api_key if args.api_key != "not-needed" else os.environ.get("CLOUDFLARE_API_TOKEN", "")
+    account = args.account_id or os.environ.get("CLOUDFLARE_ACCOUNT_ID", "")
+    if not token or not account:
+        raise SystemExit("cloudflare backend needs CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID "
+                         "in the environment (`set -a; . ./.env; set +a`) or --api-key/--account-id")
+    return CloudflareBackend(args.model, account_id=account, api_token=token)
+
+
+def _cloudflare_chat_factory(args):
+    token = args.api_key if args.api_key != "not-needed" else os.environ.get("CLOUDFLARE_API_TOKEN", "")
+    account = args.account_id or os.environ.get("CLOUDFLARE_ACCOUNT_ID", "")
+    if not token or not account:
+        raise SystemExit("cloudflare-chat backend needs CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID "
+                         "in the environment (`set -a; . ./.env; set +a`) or --api-key/--account-id")
+    return WorkersAiChatBackend(args.model or "@cf/zai-org/glm-4.7-flash",
+                                account_id=account, api_token=token)
+
+
+def _kagi_factory(args):
+    if not os.environ.get("KAGI_SESSION"):
+        raise SystemExit("kagi backend needs KAGI_SESSION in the environment "
+                         "(`set -a; . ./.env; set +a`)")
+    return KagiBackend(runtime=args.kagi_runtime, kagi_client_repo=args.kagi_client_repo)
+
+
+def _qwen_factory(args):
+    key = args.qwen_api_key or os.environ.get("QWENCLOUD_API_KEY", "")
+    if not key:
+        raise SystemExit("qwen backend needs QWENCLOUD_API_KEY in the environment "
+                         "(`set -a; . ./.env; set +a`) or --qwen-api-key")
+    return QwenMtBackend(args.model, api_key=key)
+
+
+BACKEND_FACTORIES = {
+    "ollama": lambda args: OllamaBackend(
+        args.model, host=args.host, prompt_style=args.prompt_style,
+        temperature=args.temperature, num_ctx=args.num_ctx,
+        think=None if args.think is None else args.think),
+    "openai": _openai_factory,
+    "cloudflare": _cloudflare_factory,
+    "cloudflare-chat": _cloudflare_chat_factory,
+    "kagi": _kagi_factory,
+    "qwen": _qwen_factory,
+    "transformers": lambda args: TransformersBackend(args.model, family=args.family),
+    "argos": lambda args: ArgosBackend(),
+}
+
+
 def make_backend(args):
-    if args.backend == "ollama":
-        think = None if args.think is None else args.think
-        return OllamaBackend(args.model, host=args.host, prompt_style=args.prompt_style,
-                             temperature=args.temperature, num_ctx=args.num_ctx, think=think)
-    if args.backend == "openai":
-        try:
-            extra = json.loads(args.chat_kwargs_json) if args.chat_kwargs_json.strip() else {}
-        except json.JSONDecodeError as exc:
-            raise SystemExit(f"--chat-kwargs-json is not valid JSON: {exc}")
-        if not isinstance(extra, dict):
-            raise SystemExit("--chat-kwargs-json must decode to a JSON object")
-        return OpenAICompatBackend(args.model, base_url=args.base_url, api_key=args.api_key,
-                                   prompt_style=args.prompt_style, temperature=args.temperature,
-                                   extra_payload=extra, max_tokens=args.max_tokens)
-    if args.backend == "cloudflare":
-        token = args.api_key if args.api_key != "not-needed" else os.environ.get("CLOUDFLARE_API_TOKEN", "")
-        account = args.account_id or os.environ.get("CLOUDFLARE_ACCOUNT_ID", "")
-        if not token or not account:
-            raise SystemExit("cloudflare backend needs CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID "
-                             "in the environment (`set -a; . ./.env; set +a`) or --api-key/--account-id")
-        return CloudflareBackend(args.model, account_id=account, api_token=token)
-    if args.backend == "cloudflare-chat":
-        token = args.api_key if args.api_key != "not-needed" else os.environ.get("CLOUDFLARE_API_TOKEN", "")
-        account = args.account_id or os.environ.get("CLOUDFLARE_ACCOUNT_ID", "")
-        if not token or not account:
-            raise SystemExit("cloudflare-chat backend needs CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID "
-                             "in the environment (`set -a; . ./.env; set +a`) or --api-key/--account-id")
-        return WorkersAiChatBackend(args.model or "@cf/zai-org/glm-4.7-flash",
-                                    account_id=account, api_token=token)
-    if args.backend == "kagi":
-        if not os.environ.get("KAGI_SESSION"):
-            raise SystemExit("kagi backend needs KAGI_SESSION in the environment "
-                             "(`set -a; . ./.env; set +a`)")
-        return KagiBackend(runtime=args.kagi_runtime, kagi_client_repo=args.kagi_client_repo)
-    if args.backend == "qwen":
-        key = args.qwen_api_key or os.environ.get("QWENCLOUD_API_KEY", "")
-        if not key:
-            raise SystemExit("qwen backend needs QWENCLOUD_API_KEY in the environment "
-                             "(`set -a; . ./.env; set +a`) or --qwen-api-key")
-        return QwenMtBackend(args.model, api_key=key)
-    if args.backend == "transformers":
-        return TransformersBackend(args.model, family=args.family)
-    if args.backend == "argos":
-        return ArgosBackend()
-    raise SystemExit(f"unknown backend: {args.backend}")
+    factory = BACKEND_FACTORIES.get(args.backend)
+    if factory is None:
+        raise SystemExit(f"unknown backend: {args.backend}")
+    return factory(args)
 
 
 def by_category(pairs: list[dict], per_sentence: list[float]) -> dict:
