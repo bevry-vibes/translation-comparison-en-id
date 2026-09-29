@@ -4,7 +4,8 @@ A survey of **free, locally runnable** AI models for translation between Indones
 
 - 📊 **[docs/model-survey.md](docs/model-survey.md)** — the survey: candidates, licences, published quality, hardware sizing, runtimes, evaluation options and the measured results from this repo.
 - 🇮🇩 **[docs/indonesian-notes.md](docs/indonesian-notes.md)** — linguistic/pipeline checklist (register, reduplication, `-nya`, numbers, entities, do-not-translate lists).
-- 🌐 **[the results site](https://translation-comparison-en-id.bevry.workers.dev)** — every benchmark table, per-category breakdowns and masked-name token survival, served from a Cloudflare Worker; data rebuilt from `results/*.json` by `eval/build_site_data.py`.
+- 🌐 **[the results site](https://translation-comparison-en-id.bevry.workers.dev)** — the canonical rendered results: per-direction run tables (Quality | Token survival toggle), category chrF, the current model recommendation, and the verbatim prompts — served from a Cloudflare Worker; data rebuilt from `results/*.json` by `eval/build_site_data.py`.
+- 📖 **[results/README.md](results/README.md)** — how to interpret the results (comparability rules, field dictionary) and how to replicate a run. Read it before reasoning about the numbers.
 
 ## Quick start
 
@@ -14,8 +15,9 @@ ollama pull translategemma:4b        # Google TranslateGemma 4B, ~3.3 GB, needs 
 bash scripts/pull-models.sh hymt2    # Tencent Hy-MT2-1.8B (Apache-2.0) incl. the HF-download workaround
 bash scripts/pull-models.sh argos    # Argos Translate en<->id (tiny, CPU-only, fully offline)
 
-# 2. build the test set (FLORES-101 devtest + Tatoeba + curated tricky cases)
-python3 eval/build_testset.py --flores 20 --tatoeba 40
+# 2. build the test set (testset-v2: FLORES-101 devtest + Tatoeba + curated probes, 78 segments per direction)
+python3 eval/build_testset.py --flores 20 --tatoeba 40 --flores-enid 20 --tatoeba-enid 44 \
+  --out data/testset-v2.jsonl
 
 # 3. run any backend
 python3 eval/run_eval.py --backend ollama --model translategemma:4b \
@@ -42,12 +44,13 @@ python3 eval/build_site_data.py
 | `eval/build_testset.py` | builds `data/testset.jsonl` from FLORES-101 devtest (ungated mirror), Tatoeba (OPUS) and `data/curated.jsonl` |
 | `eval/build_masked_testset.py` | builds `data/masked.jsonl`: name-heavy segments with production-style masking — every name wrapped in `U+E000 + index + U+E001`, longest-form-first glossary, exactly patipeaceplace's `protectTerms` |
 | `eval/run_eval.py` | runs a backend over one direction, scores it, dumps every source/reference/hypothesis to `results/*.json` |
-| `eval/backends.py` | Ollama, OpenAI-compatible (LM Studio / llama-server / vLLM / hosted MaaS gateways), Transformers (NLLB, M2M-100, MADLAD, OPUS-MT), Argos, Cloudflare Workers AI (official SDK, NMT and chat shapes), Kagi Translate, and Qwen-MT (QwenCloud MaaS) adapters, plus the per-family prompt templates |
+| `eval/backends.py` | Ollama, OpenAI-compatible (LM Studio / llama-server / vLLM / hosted MaaS gateways), Transformers (NLLB, M2M-100, MADLAD, OPUS-MT), Argos, Cloudflare Workers AI (official SDK, NMT and chat shapes), Kagi Translate, and Qwen-MT (QwenCloud MaaS) adapters, plus the per-family prompt templates (the single source the site renders) |
+| `eval/providers.py` | the provider manifest: gateway labels, endpoints, key env vars, reasoning switches — one source for the harness, the site data and the replication recipes |
 | `eval/metrics.py` | corpus chrF / chrF++ / BLEU + per-sentence chrF; uses `sacrebleu` when installed, otherwise a stdlib fallback |
-| `eval/token_survival.py` | scores masked-set runs: did every token + index survive, was anything renumbered or left behind, and does every name round-trip after restoration; renders `results/token-survival.md` |
-| `eval/deno/run_eval.ts` | like-for-like Deno harness for the Workers AI sweep: same test set, same metric formulas, same results JSON and run lock, so `build_site_data.py` feeds both clients into one results site |
+| `eval/token_survival.py` | scores masked-set runs: did every token + index survive, was anything renumbered or left behind, and does every name round-trip after restoration; writes `results/token-survival.json` |
+| `eval/deno/run_eval.ts` | like-for-like Deno harness — kept working as the TypeScript consumer proof (smoke-verified; not used for measurement rows) |
 | `eval/memguard.py` | RAM-fit check, single-run lock and Ollama model eviction — stops a benchmark from exhausting the machine's memory |
-| `eval/build_site_data.py` | renders `results/*.json` (plus token-survival scoring of the masked runs) into `site/src/data/results.json` for the results site |
+| `eval/build_site_data.py` | renders `results/*.json` + the survival matrix + `docs/recommendation.json` + the prompt catalogue into `site/src/data/results.json` for the results site |
 | `scripts/pull-models.sh` | model acquisition, including the HF-CDN redirect workaround for Ollama |
 | `scripts/run-bench.sh` | builds the test set, runs every available backend, regenerates the table |
 | `scripts/run-cloud.sh` | runs the hosted sweeps (Cloudflare Workers AI, Kagi Translate) in both directions, then refreshes the results-site data |
@@ -107,13 +110,14 @@ Direct runs:
 .venv/bin/python eval/run_eval.py --backend cloudflare --model '@cf/meta/m2m100-1.2b' \
   --prompt-style none --src id --tgt en --name cf-m2m100-1.2b
 
-# Cloudflare Workers AI, Deno (npm `cloudflare` SDK; like-for-like client comparison)
+# Cloudflare Workers AI, Deno (npm `cloudflare` SDK) — the TypeScript consumer proof;
+# smoke-check it, don't use it for measurement rows (python harness is the measurement path)
 deno run --allow-net --allow-env --allow-read --allow-write --allow-run \
   eval/deno/run_eval.ts --model '@cf/meta/m2m100-1.2b' --src id --tgt en --name cf-m2m100-1.2b-deno
 
-# Kagi Translate through bevry-vibes/kagi-translate-client (--kagi-runtime python|deno)
+# Kagi Translate through bevry-vibes/kagi-translate-client (python runtime; deno available via --kagi-runtime deno)
 .venv/bin/python eval/run_eval.py --backend kagi --kagi-runtime python \
-  --prompt-style none --src id --tgt en --name kagi-py
+  --prompt-style none --src id --tgt en --name kagi
 
 # Qwen-MT dedicated translation models on QwenCloud MaaS
 .venv/bin/python eval/run_eval.py --backend qwen --model qwen-mt-flash \
@@ -132,7 +136,7 @@ deno run --allow-net --allow-env --allow-read --allow-write --allow-run \
 python3 eval/build_masked_testset.py
 .venv/bin/python eval/run_eval.py --backend qwen --model qwen-mt-lite \
   --prompt-style none --testset data/masked.jsonl --src id --tgt en --name qwen-mt-lite-masked
-python3 eval/token_survival.py   # renders results/token-survival.md
+python3 eval/token_survival.py   # scores every masked run into results/token-survival.json
 
 # OpenRouter model through the production `engine` prompt (reasoning disabled, capped
 # completions so the credit preflight passes; results labelled or-*)

@@ -20,19 +20,9 @@ DIRECTION="${2:-both}"
 MODE="${3:-plain}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
-
-if [[ -f .env ]]; then
-  set -a
-  . ./.env
-  set +a
-fi
-
-PY="$ROOT/.venv/bin/python"
-if [[ ! -x "$PY" ]]; then
-  echo "bootstrapping .venv with uv (never bare pip)"
-  uv venv "$ROOT/.venv"
-  uv pip install --python "$PY" -r "$ROOT/requirements.txt"
-fi
+source "$ROOT/scripts/lib.sh"
+load_env
+ensure_venv
 
 OR_URL="https://openrouter.ai/api/v1"
 DS_URL="https://api.deepseek.com"
@@ -41,6 +31,7 @@ OR_REASON_OFF='{"reasoning":{"enabled":false}}'
 DS_THINK_OFF='{"thinking":{"type":"disabled"}}'
 
 # provider|base-url|api-key-var|model-id|result-name|chat-kwargs
+# keep in sync with the gateway metadata in eval/providers.py
 MODELS=(
   "openrouter|$OR_URL|OPENROUTER_API_KEY|qwen/qwen3-30b-a3b-instruct-2507|or-qwen3-30b-a3b-2507|"
   "openrouter|$OR_URL|OPENROUTER_API_KEY|qwen/qwen3-235b-a22b-2507|or-qwen3-235b-a22b-2507|"
@@ -101,5 +92,5 @@ done
 if [[ "$MODE" == masked ]]; then
   "$PY" eval/token_survival.py
 else
-  "$PY" eval/build_site_data.py
+  refresh_site_data
 fi

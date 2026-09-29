@@ -21,19 +21,9 @@ PROVIDER="${1:-both}"
 DIRECTION="${2:-both}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
-
-if [[ -f .env ]]; then
-  set -a
-  . ./.env
-  set +a
-fi
-
-PY="$ROOT/.venv/bin/python"
-if [[ ! -x "$PY" ]]; then
-  echo "bootstrapping .venv with uv (never bare pip)"
-  uv venv "$ROOT/.venv"
-  uv pip install --python "$PY" -r "$ROOT/requirements.txt"
-fi
+source "$ROOT/scripts/lib.sh"
+load_env
+ensure_venv
 
 QWEN_URL="https://maas.qwencloudapi.com/compatible-mode/v1"
 QWEN_MODELS=(qwen-mt-flash qwen-mt-lite qwen-mt-turbo qwen-mt-plus)
@@ -44,16 +34,13 @@ REPLACEMENT_CHAT_MODELS=("${QWEN_CHAT_MODELS[@]}")     # the raisable-rate-limit
 run_cf() { # $1 src, $2 tgt
   "$PY" eval/run_eval.py --backend cloudflare --model '@cf/meta/m2m100-1.2b' \
     --prompt-style none --src "$1" --tgt "$2" --name cf-m2m100-1.2b
-  deno run --allow-net --allow-env --allow-read --allow-write --allow-run \
-    eval/deno/run_eval.ts --model '@cf/meta/m2m100-1.2b' \
-    --src "$1" --tgt "$2" --name cf-m2m100-1.2b-deno
+  # the Deno client (eval/deno/run_eval.ts) is a kept-working TS consumer proof,
+  # smoke-verified separately — not part of the measurement sweeps
 }
 
 run_kagi() { # $1 src, $2 tgt
   "$PY" eval/run_eval.py --backend kagi --kagi-runtime python \
-    --prompt-style none --src "$1" --tgt "$2" --name kagi-py
-  "$PY" eval/run_eval.py --backend kagi --kagi-runtime deno \
-    --prompt-style none --src "$1" --tgt "$2" --name kagi-deno
+    --prompt-style none --src "$1" --tgt "$2" --name kagi
 }
 
 run_qwen() { # $1 src, $2 tgt, $2.. models
@@ -113,4 +100,4 @@ for ((i = 0; i < ${#DIRECTIONS[@]}; i += 2)); do
   esac
 done
 
-"$PY" eval/build_site_data.py
+refresh_site_data
