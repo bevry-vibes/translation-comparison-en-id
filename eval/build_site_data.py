@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Build site/src/data/results.json for the benchmark-results website.
 
-Reads results/*.json (plus data/masked.jsonl truth for the token-survival
-stats, scored by reusing eval/token_survival.py directly) and emits a single
-JSON document consumed by the Vite site in site/.
+Reads results/*.json plus the scored token-survival matrix
+(results/token-survival.json, emitted by `eval/token_survival.py` — the single
+scoring implementation) and emits a single JSON document consumed by the Vite
+site in site/.
 
-Main tables cover only default-testset runs; masked-testset runs are scored
-for name-token survival instead. Samples are capped at the best/worst 5 by
+Main tables cover only default-testset runs; masked-testset runs appear only
+through the scored survival matrix. Samples are capped at the best/worst 5 by
 chrF per run to keep the payload small.
 
 Usage: python3 eval/build_site_data.py
@@ -15,18 +16,13 @@ Usage: python3 eval/build_site_data.py
 from __future__ import annotations
 
 import json
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "eval"))
-
-import metrics  # noqa: E402
-import token_survival  # noqa: E402
 
 OUT = ROOT / "site" / "src" / "data" / "results.json"
-MASKED_TESTSET = ROOT / "data" / "masked.jsonl"
+SURVIVAL_JSON = ROOT / "results" / "token-survival.json"
 
 # backend -> (provider label, hosted)
 PROVIDERS = {
@@ -58,15 +54,6 @@ def provider_of(payload: dict) -> tuple[str, bool]:
     return provider, hosted
 
 SAMPLE_CAP = 5  # best N and worst N by chrF per run
-
-
-def load_jsonl(path: Path) -> dict:
-    truth = {}
-    for line in path.read_text(encoding="utf-8").splitlines():
-        if line.strip():
-            entry = json.loads(line)
-            truth[entry["id"]] = entry
-    return truth
 
 
 def capped_samples(samples: list[dict]) -> tuple[list[dict], bool]:
@@ -106,43 +93,17 @@ def run_row(payload: dict) -> dict:
     return row
 
 
-def survival_row(path: Path, payload: dict, truth: dict) -> dict:
-    """Score a masked run via eval/token_survival.py (shared logic, no reimplementation)."""
-    samples = payload["samples"]
-    passed = 0
-    restored_texts, references, failures = [], [], []
-    for sample in samples:
-        entry = truth[sample["id"]]
-        ok, seg_failures, restored = token_survival.score_segment(
-            sample["hypothesis"], entry
-        )
-        if ok:
-            passed += 1
-        else:
-            failures.append(
-                {"id": sample["id"], "failures": seg_failures, "hypothesis": sample["hypothesis"]}
-            )
-        restored_texts.append(restored)
-        references.append(entry["reference"])
-    corpus = metrics.score_all(restored_texts, references)
-    provider, hosted = provider_of(payload)
-    return {
-        "label": payload["label"],
-        "file": path.name,
-        "model": payload["model"],
-        "prompt_style": payload["prompt_style"],
-        "provider": provider,
-        "hosted": hosted,
-        "direction": f"{payload['src']}->{payload['tgt']}",
-        "passed": passed,
-        "total": len(samples),
-        "verdict": "PASS" if passed == len(samples) else "FAIL",
-        "restored_chrf": corpus["chrf"],
-        "restored_chrfpp": corpus["chrfpp"],
-        "restored_bleu": corpus["bleu"],
-        "failures": failures,
-        "timestamp": payload.get("timestamp"),
-    }
+def survival_rows() -> list[dict]:
+    """The scored masked-run matrix from eval/token_survival.py (single scoring
+    implementation), with provider labels attached per row."""
+    if not SURVIVAL_JSON.exists():
+        raise SystemExit(f"missing {SURVIVAL_JSON}; run `python3 eval/token_survival.py` first")
+    data = json.loads(SURVIVAL_JSON.read_text(encoding="utf-8"))
+    rows = []
+    for row in data["runs"]:
+        provider, hosted = provider_of(row)
+        rows.append({**row, "provider": provider, "hosted": hosted})
+    return rows
 
 
 def mark_best(rows: list[dict]) -> None:
@@ -162,24 +123,22 @@ def mark_best(rows: list[dict]) -> None:
 
 def main() -> None:
     main_runs: dict[str, list[dict]] = {}
-    masked_runs: list[tuple[Path, dict]] = []
     for path in sorted((ROOT / "results").glob("*.json")):
+        if path.name == SURVIVAL_JSON.name:
+            continue  # the scored matrix, not a run
         payload = json.loads(path.read_text(encoding="utf-8"))
-        if payload.get("testset", "testset.jsonl") != "testset.jsonl":
-            masked_runs.append((path, payload))
-        else:
-            direction = f"{payload['src']}->{payload['tgt']}"
-            main_runs.setdefault(direction, []).append(run_row(payload))
+        if payload.get("testset", "testset.jsonl").startswith("masked"):
+            continue  # masked runs surface only through the scored survival matrix
+        direction = f"{payload['src']}->{payload['tgt']}"
+        main_runs.setdefault(direction, []).append(run_row(payload))
 
-    truth = load_jsonl(MASKED_TESTSET)
-    survival = [survival_row(path, payload, truth) for path, payload in masked_runs]
+    survival = survival_rows()
 
     directions = []
     for direction in sorted(main_runs):
         rows = sorted(main_runs[direction], key=lambda r: r["metrics"]["chrf"], reverse=True)
         mark_best(rows)
-        best_run = rows[0]
-        survival_rows = sorted(
+        survival_rows_for_direction = sorted(
             (s for s in survival if s["direction"] == direction),
             key=lambda s: (-s["passed"] / s["total"], s["model"]),
         )
@@ -195,7 +154,7 @@ def main() -> None:
                     "file": rows[0]["file"],
                     "chrf_by_category": rows[0]["chrf_by_category"],
                 },
-                "token_survival": survival_rows,
+                "token_survival": survival_rows_for_direction,
             }
         )
 

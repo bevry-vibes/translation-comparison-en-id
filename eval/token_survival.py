@@ -18,9 +18,12 @@ A segment passes only when all three hold. The corpus-level verdict is strict:
 any failing segment fails the run. Restored-vs-reference chrF is reported as a
 secondary quality column.
 
+Output: `results/token-survival.json` (consumed by `eval/build_site_data.py`;
+the results site renders it). Use `--json -` to print instead of writing.
+
 Usage:
-  python3 eval/token_survival.py                     # score results/*-masked-*.json
-  python3 eval/token_survival.py --glob 'results/x.json'
+  python3 eval/token_survival.py                       # score -> results/token-survival.json
+  python3 eval/token_survival.py --glob 'results/x.json' --json -
 """
 
 from __future__ import annotations
@@ -28,13 +31,11 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-sys_path = ROOT / "eval"
-import sys  # noqa: E402
-
-sys.path.insert(0, str(sys_path))
+sys.path.insert(0, str(ROOT / "eval"))
 
 import metrics  # noqa: E402
 
@@ -75,8 +76,6 @@ def score_segment(hypothesis: str, truth: dict) -> tuple[bool, list[str], str]:
     """Returns (passed, failure lines, restored text)."""
     failures: list[str] = []
     expected = {n["index"]: n for n in truth["names"]}
-    total_expected = sum(n["count"] for n in truth["names"])
-
     counts: dict[int, int] = {}
     for match in TOKEN_RE.finditer(hypothesis):
         index = int(match.group(1))
@@ -116,92 +115,73 @@ def score_segment(hypothesis: str, truth: dict) -> tuple[bool, list[str], str]:
     return not failures, failures, restored
 
 
+def score_run(path: Path, payload: dict, truth: dict) -> dict:
+    """Score one masked-set result file into the shared JSON shape."""
+    samples = payload["samples"]
+    passed = 0
+    restored_texts: list[str] = []
+    references: list[str] = []
+    failures: list[dict] = []
+    for sample in samples:
+        entry = truth[sample["id"]]
+        ok, seg_failures, restored = score_segment(sample["hypothesis"], entry)
+        if ok:
+            passed += 1
+        else:
+            failures.append(
+                {"id": sample["id"], "failures": seg_failures, "hypothesis": sample["hypothesis"]}
+            )
+        restored_texts.append(restored)
+        references.append(entry["reference"])
+    corpus = metrics.score_all(restored_texts, references)
+    return {
+        "label": payload["label"],
+        "file": path.name,
+        "model": payload["model"],
+        "prompt_style": payload["prompt_style"],
+        "backend": payload["backend"],
+        "direction": f"{payload['src']}->{payload['tgt']}",
+        "passed": passed,
+        "total": len(samples),
+        "verdict": "PASS" if passed == len(samples) else "FAIL",
+        "restored_chrf": corpus["chrf"],
+        "restored_chrfpp": corpus["chrfpp"],
+        "restored_bleu": corpus["bleu"],
+        "failures": failures,
+        "timestamp": payload.get("timestamp"),
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--glob", default="results/*-masked*.json",
                         help="result files to score (default results/*-masked*.json)")
     parser.add_argument("--testset", default=str(ROOT / "data" / "masked.jsonl"))
-    parser.add_argument("--out", default=str(ROOT / "results" / "token-survival.md"))
+    parser.add_argument("--json", default=str(ROOT / "results" / "token-survival.json"),
+                        help="output path for the scored matrix ('-' prints to stdout)")
     args = parser.parse_args()
 
-    truth = {}
+    truth: dict[str, dict] = {}
     for line in Path(args.testset).read_text(encoding="utf-8").splitlines():
         if line.strip():
             entry = json.loads(line)
             truth[entry["id"]] = entry
 
-    runs = []
-    for path in sorted(ROOT.glob(args.glob) if not args.glob.startswith("/") else [Path(args.glob)]):
-        payload = json.loads(path.read_text(encoding="utf-8"))
-        runs.append((path, payload))
+    paths = sorted(ROOT.glob(args.glob) if not args.glob.startswith("/") else [Path(args.glob)])
+    runs = [score_run(path, json.loads(path.read_text(encoding="utf-8")), truth) for path in paths]
     if not runs:
         raise SystemExit(f"no result files match {args.glob}")
 
-    lines = [
-        "# Masked-name token survival",
-        "",
-        "Provider output on production-style masked segments (names wrapped in",
-        "`U+E000 + index + U+E001`, longest-form-first glossary). A segment passes only",
-        "when every expected token survives (right index, full count), nothing was",
-        "renumbered or left behind, and every name round-trips through restoration.",
-        "Verdicts are strict: one dropped name fails the run. chrF is restored",
-        "hypothesis vs hand reference, a secondary quality hint only.",
-        "",
-    ]
-    summary_rows = []
-    for path, payload in runs:
-        samples = payload["samples"]
-        passed = 0
-        restored_texts = []
-        references = []
-        details = []
-        for sample in samples:
-            entry = truth[sample["id"]]
-            ok, failures, restored = score_segment(sample["hypothesis"], entry)
-            if ok:
-                passed += 1
-            else:
-                details.append((sample["id"], failures, sample["hypothesis"]))
-            restored_texts.append(restored)
-            references.append(entry["reference"])
-        chrf = metrics.per_sentence_chrf(restored_texts, references)
-        corpus = metrics.score_all(restored_texts, references)
-        verdict = "PASS" if passed == len(samples) else "FAIL"
-        summary_rows.append({
-            "label": payload["label"], "model": payload["model"],
-            "prompt": payload["prompt_style"], "direction": f"{payload['src']}->{payload['tgt']}",
-            "passed": passed, "total": len(samples), "verdict": verdict,
-            "chrf": round(corpus["chrf"], 2), "per_segment": chrf, "details": details,
-            "path": path.name,
-        })
-
-    lines += [
-        "| run | model | prompt | direction | survived | verdict | restored chrF | file |",
-        "| --- | --- | --- | --- | ---: | --- | ---: | --- |",
-    ]
-    for row in sorted(summary_rows, key=lambda r: (r["direction"], -(r["passed"] / r["total"]), r["model"])):
-        lines.append(
-            f"| `{row['label']}` | `{row['model']}` | {row['prompt']} | {row['direction']} "
-            f"| {row['passed']}/{row['total']} | **{row['verdict']}** | {row['chrf']} "
-            f"| `{row['path']}` |"
-        )
-
-    for row in summary_rows:
-        if not row["details"]:
-            continue
-        lines += ["", f"## {row['label']} ({row['direction']}) failures", ""]
-        for segment_id, failures, hypothesis in row["details"]:
-            lines.append(f"- `{segment_id}`:")
-            for failure in failures:
-                lines.append(f"  - {failure}")
-            lines.append(f"  - raw hypothesis: {hypothesis!r}")
-
-    Path(args.out).write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print(f"wrote {args.out}")
-    print()
-    for row in sorted(summary_rows, key=lambda r: (r["direction"], -(r["passed"] / r["total"]))):
-        print(f"{row['direction']:6s} {row['model']:24s} {row['prompt']:16s} "
-              f"{row['passed']}/{row['total']:2d} {row['verdict']:4s} restored-chrF {row['chrf']}")
+    runs.sort(key=lambda r: (r["direction"], -r["passed"] / r["total"], r["model"]))
+    body = json.dumps({"runs": runs}, ensure_ascii=False, indent=1)
+    if args.json == "-":
+        print(body)
+    else:
+        Path(args.json).write_text(body + "\n", encoding="utf-8")
+        print(f"wrote {args.json} ({len(runs)} masked runs)")
+    for row in runs:
+        print(f"{row['direction']:6s} {row['model']:32s} {row['prompt_style']:16s} "
+              f"{row['passed']}/{row['total']:2d} {row['verdict']:4s} restored-chrF {row['restored_chrf']}")
 
 
 if __name__ == "__main__":
