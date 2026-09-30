@@ -313,9 +313,10 @@ async function translate(
     return { out, seconds: (performance.now() - started) / 1000 - waited };
   }
   if (backend === "cloudflare" || backend === "cloudflare-chat") {
-    const apiToken = opts["api-key"] !== "not-needed"
-      ? opts["api-key"]
-      : Deno.env.get("CLOUDFLARE_API_TOKEN") ?? "";
+    // absent or "not-needed": use the environment credentials
+    const apiToken = !opts["api-key"] || opts["api-key"] === "not-needed"
+      ? Deno.env.get("CLOUDFLARE_API_TOKEN") ?? ""
+      : opts["api-key"];
     const accountId = opts["account-id"] ??
       Deno.env.get("CLOUDFLARE_ACCOUNT_ID") ?? "";
     if (!apiToken || !accountId) {
