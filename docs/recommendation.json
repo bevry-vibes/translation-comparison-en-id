@@ -43,6 +43,12 @@
       "provider": "Cloudflare Workers AI",
       "role": "reinstated after the scheme fix — pending re-rank",
       "why": "10/10 bracket survival in both directions (was 7/10 on PUA tokens). List price $0.15/$0.50 per M looks mid-pack, but both known hosts mandate reasoning, so every call bills ~1000+ hidden thinking tokens as output — effective cost roughly 2-3x list, with Cloudflare's serving also ~3x slower than OpenRouter's (11.5 vs 4.0 s/sentence). deepseek-v4-pro also passes 10/10 both directions"
+    },
+    {
+      "model": "z-ai/glm-5.3-prime",
+      "provider": "Cline",
+      "role": "zero-cost failover tier (with xiaomi/mimo-v2.6-flash, cohere/command-a-plus, upstage/solar-mini4)",
+      "why": "all four Cline free-promotion models pass 10/10 bracket survival in both directions at $0 — no credits held on any gateway. glm-5.3-prime leads them (74.27 chrF id->en / 72.72 en->id, 2.7-4.4 s/s with reasoning on), mimo-v2.6-flash is close (73.36/72.57); command-a-plus is the fastest hosted model measured (0.9 s/s) but weak id->en (67.14); solar-mini4 trails (71.60/67.33). Mid-field quality — an emergency tier if paid gateways are all unavailable, not a successor. The promos rotate: verify an id still meters zero before relying on it"
     }
   ],
   "disqualified": [
@@ -80,6 +86,7 @@
     "2026-09-29 (day): off-QwenCloud provider sweep; qwen3-235b-a22b-2507 on OpenRouter becomes the primary recommendation",
     "2026-09-29 (evening): identity spike; an earlier 'destroys masked names 0/10' verdict for glm-4.7-flash was a harness parsing bug, and the real finding is that the PUA token scheme itself breaks GLM-family and nemotron tokenizers — ASCII brackets [[n]] fix them outright (docs/identity-spike.md)",
     "2026-09-29 (night): mask scheme migrated to [[n]]; DeepSeek (both models) and glm-5.3-flash pass 10/10 both directions and are reinstated pending the full re-sweep; the old DeepSeek disqualification was the PUA scheme plus 1024-token truncation",
-    "2026-09-30: Cloudflare now hosts deepseek v4-flash/v4-pro; the missing provider legs measured within the parity band and same-model runs collapsed into single rows (qwen3-30b fp8 excluded); recommendation entries now carry list prices and the fp8 qwen3-30b join the disqualified list"
+    "2026-09-30: Cloudflare now hosts deepseek v4-flash/v4-pro; the missing provider legs measured within the parity band and same-model runs collapsed into single rows (qwen3-30b fp8 excluded); recommendation entries now carry list prices and the fp8 qwen3-30b join the disqualified list",
+    "2026-09-30 (later): the 'Cline black-holes requests' note was a harness artifact (no request timeout, fixed); Cline reinstated with free-promotion legs only — all four zero-metered models pass 10/10 bracket survival both directions, forming a $0 emergency failover tier; OpenCode Zen confirmed unusable via API (free tier is app-locked)"
   ]
 }
