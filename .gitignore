@@ -83,3 +83,4 @@ site/public/data/
 
 # this project: sweep progress markers
 .refresh-started-*
+site/.wrangler/
