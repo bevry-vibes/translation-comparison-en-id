@@ -18,7 +18,7 @@ export interface Cost {
 }
 
 const MODELS_DEV = "models.dev (2026-09-29)";
-const CLOUDFLARE = "Cloudflare Workers AI catalogue (2026-09-29)";
+const CLOUDFLARE = "Cloudflare Workers AI catalogue (2026-09-29/30)";
 const ALIBABA = "Alibaba Model Studio (2026-09-29)";
 
 export const PRICING: Record<string, Cost> = {
@@ -40,10 +40,24 @@ export const PRICING: Record<string, Cost> = {
   // DeepSeek official API, via models.dev
   "deepseek-flash": { input: 0.15, output: 0.6, unit: "M tokens", source: MODELS_DEV },
   "deepseek-v4-pro": { input: 0.435, output: 0.87, unit: "M tokens", source: MODELS_DEV },
-  // Cloudflare, via its own catalogue API
+  // Cloudflare, via its own catalogue API (re-queried 2026-09-30 for the
+  // deepseek/qwen additions)
   "@cf/zai-org/glm-4.7-flash": { input: 0.0605, output: 0.4, unit: "M tokens", source: CLOUDFLARE },
   "@cf/zai-org/glm-5.3-flash": { input: 0.15, output: 0.5, unit: "M tokens", source: CLOUDFLARE },
   "@cf/meta/m2m100-1.2b": { input: 0.342, output: 0.342, unit: "M tokens", source: CLOUDFLARE },
+  "@cf/deepseek-ai/deepseek-v4-flash-0731": {
+    input: 0.44,
+    output: 1.32,
+    unit: "M tokens",
+    source: CLOUDFLARE,
+  },
+  "@cf/deepseek-ai/deepseek-v4-pro-0813": {
+    input: 1.32,
+    output: 3.96,
+    unit: "M tokens",
+    source: CLOUDFLARE,
+  },
+  "@cf/qwen/qwen3-30b-a3b-fp8": { input: 0.0509, output: 0.335, unit: "M tokens", source: CLOUDFLARE },
   // QwenCloud legs, via Alibaba Model Studio
   "qwen-flash": { input: 0.05, output: 0.4, unit: "M tokens", source: ALIBABA },
   "qwen3.5-flash": { input: 0.1, output: 0.4, unit: "M tokens", source: ALIBABA },

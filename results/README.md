@@ -27,7 +27,10 @@ per segment after warmup. `chrF_by_category` — average per-sentence chrF per c
 
 The site's joined rows add: `provider` (gateway label), `hosted` (latency comparability
 class), `best` (per-column best flags within a direction), `samples_capped`
-(dialog shows best/worst 5 only when the run exceeds 10 segments).
+(dialog shows best/worst 5 only when the run exceeds 10 segments), and `canonical`
+(set when the row collapses same-model runs from several providers — its `runs` array
+carries every provider's metrics, price and label; the row's own metrics come from the
+primary provider).
 
 ## How to interpret (the rules agents get wrong)
 
@@ -51,6 +54,16 @@ class), `best` (per-column best flags within a direction), `samples_capped`
 5. **Thinking models are not comparable on latency or content cleanliness** unless reasoning
    was disabled for the run (see replication flags below) — reasoning tokens inflate
    s/sentence and can leak into content.
+6. **The same open-weight model at several providers is one model, not several.** Verified
+   cross-provider pairs (temperature 0) land within ~3 chrF of each other per direction —
+   serving-stack variance (quantization, kernels, snapshot drift), not quality differences;
+   e.g. DeepSeek V4 Flash measured 77.10 / 75.04 / 74.23 chrF id→en (official / OpenRouter /
+   Cloudflare) and 74.42 / 74.37 / 74.26 en→id, with ~0.5 chrF run-to-run nondeterminism on
+   Cloudflare itself. The site collapses such runs into one row per model: which pairs
+   collapse, whose scores are shown (the primary provider), and each listing's price live in
+   `site/tools/models.ts`. A provider only joins the collapse when its measured numbers sit
+   inside that band; models that merely share a family name across providers (kimi-k2.5
+   vs kimi-k2.6/2.7, gemma-4-31b vs gemma-4-26b-a4b) stay separate rows.
 
 ## How to replicate a run
 

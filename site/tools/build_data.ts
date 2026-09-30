@@ -16,6 +16,8 @@ import {
   ENGINE_SYSTEM,
 } from "../../eval/deno/prompts.ts";
 import { BACKENDS, openaiProviderFor } from "../../eval/deno/providers.ts";
+import type { CanonicalInfo } from "../src/types.ts";
+import { canonicalFor } from "./models.ts";
 import { priceOf, type Cost } from "./pricing.ts";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
@@ -181,7 +183,53 @@ function runRow(payload: RunPayload) {
     replication: replicationFor(payload),
     cost: priceOf(payload.model) ?? null,
     best: {} as Record<string, boolean>,
+    canonical: null as CanonicalInfo | null,
   };
+}
+
+/** Fold same-model runs from several providers into the primary provider's
+ * row (site/tools/models.ts decides what collapses and who is primary). The
+ * folded runs ride along in `canonical.runs` for the provider badges and
+ * hover detail. */
+function collapseDirection(rows: ReturnType<typeof runRow>[]) {
+  const groups = new Map<string, ReturnType<typeof runRow>[]>();
+  const kept: ReturnType<typeof runRow>[] = [];
+  for (const row of rows) {
+    const canonical = canonicalFor(row.model);
+    if (!canonical) {
+      kept.push(row);
+      continue;
+    }
+    const list = groups.get(canonical.id) ?? [];
+    list.push(row);
+    groups.set(canonical.id, list);
+  }
+  for (const [id, list] of groups) {
+    const canonical = canonicalFor(list[0].model)!;
+    const primary = list.find((r) => r.provider === canonical.primary) ??
+      [...list].sort((a, b) => b.metrics.chrf - a.metrics.chrf)[0];
+    const ordered = [...list].sort(
+      (a, b) =>
+        Number(b.provider === primary.provider) -
+        Number(a.provider === primary.provider),
+    );
+    primary.canonical = {
+      id,
+      name: canonical.name,
+      primary_provider: primary.provider,
+      runs: ordered.map((r) => ({
+        provider: r.provider,
+        label: r.label,
+        model_id: r.model,
+        metrics: r.metrics,
+        seconds_per_sentence: r.seconds_per_sentence,
+        cost: r.cost,
+        note: canonical.providers.find((p) => p.provider === r.provider)?.note,
+      })),
+    };
+    kept.push(primary);
+  }
+  return kept;
 }
 
 interface SurvivalRowLike {
@@ -202,7 +250,15 @@ function survivalRows(): (SurvivalRowLike & {
   const data = JSON.parse(Deno.readTextFileSync(path)) as { runs: SurvivalRowLike[] };
   return data.runs.map((row) => {
     const { provider, hosted } = providerOf({ label: row.label, backend: row.backend } as RunPayload);
-    return { ...row, provider, hosted, cost: priceOf(row.model) ?? null };
+    const canonical = canonicalFor(row.model);
+    return {
+      ...row,
+      provider,
+      hosted,
+      cost: priceOf(row.model) ?? null,
+      canonical_id: canonical?.id ?? null,
+      canonical_name: canonical?.name ?? null,
+    };
   });
 }
 
@@ -283,7 +339,7 @@ function main() {
   const recommendation = JSON.parse(Deno.readTextFileSync(RECOMMENDATION_JSON));
 
   const directions = [...mainRuns.keys()].sort().map((direction) => {
-    const rows = mainRuns.get(direction)!.sort((a, b) =>
+    const rows = collapseDirection(mainRuns.get(direction)!).sort((a, b) =>
       b.metrics.chrf - a.metrics.chrf
     );
     markBest(rows);

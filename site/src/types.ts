@@ -25,6 +25,26 @@ export interface Cost {
   source: string
 }
 
+/** one measured run folded into a collapsed canonical-model row */
+export interface ProviderRunSummary {
+  provider: string
+  label: string
+  model_id: string
+  metrics: { chrf: number; chrfpp: number; bleu: number }
+  seconds_per_sentence: number | null
+  cost: Cost | null
+  note?: string
+}
+
+/** set when the row collapses same-model runs from several providers */
+export interface CanonicalInfo {
+  id: string
+  name: string
+  primary_provider: string
+  /** measured runs per provider, primary first */
+  runs: ProviderRunSummary[]
+}
+
 export interface RunRow {
   label: string
   file: string
@@ -46,6 +66,7 @@ export interface RunRow {
   replication: Replication
   cost: Cost | null
   best: { chrf?: boolean; chrfpp?: boolean; bleu?: boolean; speed?: boolean }
+  canonical: CanonicalInfo | null
 }
 
 export interface SurvivalFailure {
@@ -71,6 +92,8 @@ export interface SurvivalRow {
   failures: SurvivalFailure[]
   timestamp: string | null
   cost: Cost | null
+  canonical_id: string | null
+  canonical_name: string | null
 }
 
 export interface DirectionData {

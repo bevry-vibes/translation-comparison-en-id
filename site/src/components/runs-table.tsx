@@ -19,7 +19,8 @@ import {
 } from '@/components/ui/table'
 import { SamplesDialog } from '@/components/samples-dialog'
 import { heatText, renderTokens } from '@/lib/data'
-import type { RunRow, SurvivalRow } from '@/types'
+import { providerCode } from '../../tools/models.ts'
+import type { Cost, RunRow, SurvivalRow } from '@/types'
 
 export type TableMode = 'quality' | 'survival'
 
@@ -100,19 +101,76 @@ function formatCost(value: number) {
   return `$${value.toFixed(4).replace(/0+$/, '').replace(/\.$/, '')}`
 }
 
-function costCell(cost: RunRow['cost']) {
+/** collapsed rows bill at the cheapest provider listing; hover lists them all */
+function cheapestCost(run: RunRow): Cost | null {
+  if (run.canonical) {
+    const priced = run.canonical.runs.filter((p) => p.cost)
+    if (priced.length > 0) {
+      return priced.reduce((a, b) =>
+        a.cost!.input + (a.cost!.output ?? 0) <= b.cost!.input + (b.cost!.output ?? 0) ? a : b,
+      ).cost!
+    }
+  }
+  return run.cost
+}
+
+function costCell(run: RunRow) {
+  const cost = cheapestCost(run)
   if (!cost) return <span className="text-muted-foreground">—</span>
   const text =
     cost.unit === 'M characters'
       ? `${formatCost(cost.input)} /M chars`
       : `${formatCost(cost.input)} / ${cost.output === null ? '—' : formatCost(cost.output)}`
+  let title = `${cost.source} — per ${cost.unit}, input${cost.output === null ? '' : ' then output'}`
+  if (run.canonical) {
+    const listings = run.canonical.runs
+      .map((p) => {
+        if (!p.cost) return `${providerCode(p.provider)}: no listing`
+        const value =
+          p.cost.unit === 'M characters'
+            ? `${formatCost(p.cost.input)}/M chars`
+            : `${formatCost(p.cost.input)}/${p.cost.output === null ? '—' : formatCost(p.cost.output)}`
+        return `${providerCode(p.provider)} ${value}${p.note ? ` (${p.note})` : ''}`
+      })
+      .join(' · ')
+    title = `Cheapest of ${run.canonical.runs.length} providers — ${listings} · per ${cost.unit}`
+  }
   return (
-    <span
-      className="font-mono text-[12px] tabular-nums text-foreground/80"
-      title={`${cost.source} — per ${cost.unit}, input${cost.output === null ? '' : ' then output'}`}
-    >
+    <span className="font-mono text-[12px] tabular-nums text-foreground/80" title={title}>
       {text}
     </span>
+  )
+}
+
+function modelCell(run: RunRow) {
+  if (!run.canonical) {
+    return (
+      <div className="flex flex-col">
+        <span className="font-mono text-[13px] font-medium">{run.model}</span>
+        <span className="text-[11px] text-muted-foreground">{run.provider}</span>
+      </div>
+    )
+  }
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="font-mono text-[13px] font-medium">{run.canonical.name}</span>
+      <div className="flex flex-wrap gap-1">
+        {run.canonical.runs.map((p) => (
+          <Badge
+            key={p.label}
+            variant={p.provider === run.canonical!.primary_provider ? 'default' : 'outline'}
+            className="px-1 py-0 font-mono text-[10px]"
+            title={
+              `${p.provider} — ${p.model_id} · chrF ${p.metrics.chrf.toFixed(2)}` +
+              (p.note ? ` · ${p.note}` : '') +
+              (p.provider === run.canonical!.primary_provider ? ' · scores shown' : '')
+            }
+          >
+            {providerCode(p.provider)}
+          </Badge>
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -140,15 +198,17 @@ export function RunsTable({
   const [failureRow, setFailureRow] = useState<SurvivalRow | null>(null)
   const [failureOpen, setFailureOpen] = useState(false)
 
-  // survival runs are siblings of the plain runs; join them on the model id.
+  // survival runs are siblings of the plain runs; join them on the canonical
+  // model id so collapsed multi-provider rows pick up every provider's matrix.
   // A model can carry several masked variants (e.g. glm-4.7-flash with and
   // without the preservation instruction).
   const survivalByModel = useMemo(() => {
     const map = new Map<string, SurvivalRow[]>()
     for (const row of survival) {
-      const list = map.get(row.model) ?? []
+      const key = row.canonical_id ?? row.model
+      const list = map.get(key) ?? []
       list.push(row)
-      map.set(row.model, list)
+      map.set(key, list)
     }
     return map
   }, [survival])
@@ -164,13 +224,8 @@ export function RunsTable({
         key: 'model',
         label: 'Model',
         numeric: false,
-        value: (r) => r.model,
-        render: (r) => (
-          <div className="flex flex-col">
-            <span className="font-mono text-[13px] font-medium">{r.model}</span>
-            <span className="text-[11px] text-muted-foreground">{r.provider}</span>
-          </div>
-        ),
+        value: (r) => r.canonical?.name ?? r.model,
+        render: modelCell,
       },
       {
         key: 'prompt_style',
@@ -231,9 +286,12 @@ export function RunsTable({
         label: 'Cost $/M',
         numeric: true,
         title:
-          'List price per million tokens, input then output (Kagi: characters). Sources: models.dev, provider catalogues',
-        value: (r) => (r.cost ? r.cost.input + (r.cost.output ?? 0) : Number.POSITIVE_INFINITY),
-        render: (r) => costCell(r.cost),
+          'List price per million tokens, input then output (Kagi: characters). Sources: models.dev, provider catalogues. Collapsed rows show the cheapest provider',
+        value: (r) => {
+          const cost = cheapestCost(r)
+          return cost ? cost.input + (cost.output ?? 0) : Number.POSITIVE_INFINITY
+        },
+        render: costCell,
       },
       {
         key: 'file',
@@ -254,13 +312,8 @@ export function RunsTable({
       key: 'model',
       label: 'Model',
       numeric: false,
-      value: (r) => r.model,
-      render: (r) => (
-        <div className="flex flex-col">
-          <span className="font-mono text-[13px] font-medium">{r.model}</span>
-          <span className="text-[11px] text-muted-foreground">{r.provider}</span>
-        </div>
-      ),
+      value: (r) => r.canonical?.name ?? r.model,
+      render: modelCell,
     },
     {
       key: 'prompt_style',
@@ -278,10 +331,11 @@ export function RunsTable({
       label: 'Survived',
       numeric: true,
       title: 'Masked segments whose protection tokens all survived, out of the masked set',
-      value: (r) => bestVariant(survivalByModel.get(r.model) ?? [])?.passed ?? -1,
+      value: (r) => bestVariant(survivalByModel.get(r.canonical?.id ?? r.model) ?? [])?.passed ?? -1,
       render: (r) => {
-        const variants = survivalByModel.get(r.model) ?? []
+        const variants = survivalByModel.get(r.canonical?.id ?? r.model) ?? []
         if (variants.length === 0) return <span className="text-muted-foreground">—</span>
+        const multiProvider = new Set(variants.map((v) => v.provider)).size > 1
         return (
           <div className="flex flex-col items-end gap-1">
             {variants.map((variant) => {
@@ -289,7 +343,12 @@ export function RunsTable({
               return (
                 <span key={variant.label} className="inline-flex items-center gap-1.5">
                   {variants.length > 1 && (
-                    <Badge variant="outline" className="px-1 py-0 font-mono text-[10px]">
+                    <Badge
+                      variant="outline"
+                      className="px-1 py-0 font-mono text-[10px]"
+                      title={`${variant.provider} — ${variant.label}`}
+                    >
+                      {multiProvider ? `${providerCode(variant.provider)}·` : ''}
                       {variant.prompt_style}
                     </Badge>
                   )}
@@ -313,9 +372,9 @@ export function RunsTable({
       label: 'Restored chrF',
       numeric: true,
       title: 'chrF of the restored hypothesis vs the masked-set reference; secondary quality hint',
-      value: (r) => bestVariant(survivalByModel.get(r.model) ?? [])?.restored_chrf ?? -1,
+      value: (r) => bestVariant(survivalByModel.get(r.canonical?.id ?? r.model) ?? [])?.restored_chrf ?? -1,
       render: (r) => {
-        const best = bestVariant(survivalByModel.get(r.model) ?? [])
+        const best = bestVariant(survivalByModel.get(r.canonical?.id ?? r.model) ?? [])
         if (!best) return <span className="text-muted-foreground">—</span>
         return (
           <span
@@ -336,11 +395,11 @@ export function RunsTable({
       label: 'Failures',
       numeric: true,
       value: (r) => {
-        const best = bestVariant(survivalByModel.get(r.model) ?? [])
+        const best = bestVariant(survivalByModel.get(r.canonical?.id ?? r.model) ?? [])
         return best ? best.total - best.passed : -1
       },
       render: (r) => {
-        const best = bestVariant(survivalByModel.get(r.model) ?? [])
+        const best = bestVariant(survivalByModel.get(r.canonical?.id ?? r.model) ?? [])
         if (!best || best.failures.length === 0)
           return <span className="text-xs text-muted-foreground">—</span>
         return (
@@ -364,9 +423,12 @@ export function RunsTable({
       label: 'Cost $/M',
       numeric: true,
       title:
-        'List price per million tokens, input then output (Kagi: characters). Sources: models.dev, provider catalogues',
-      value: (r) => (r.cost ? r.cost.input + (r.cost.output ?? 0) : Number.POSITIVE_INFINITY),
-      render: (r) => costCell(r.cost),
+        'List price per million tokens, input then output (Kagi: characters). Sources: models.dev, provider catalogues. Collapsed rows show the cheapest provider',
+      value: (r) => {
+        const cost = cheapestCost(r)
+        return cost ? cost.input + (cost.output ?? 0) : Number.POSITIVE_INFINITY
+      },
+      render: costCell,
     },
   ]
 
@@ -459,7 +521,9 @@ export function RunsTable({
             backends. Cost is list price per million tokens, input then output — aggregated from{' '}
             <span className="font-mono">models.dev</span> and the provider catalogues (Kagi bills
             per million characters; local rows are free). Hover the cost for its source. Click any
-            row for its best/worst samples.
+            row for its best/worst samples. The same open-weight model measured at several
+            providers collapses into one row: provider badges show where it ran (filled = the
+            provider whose scores are shown), and the cost cell shows the cheapest listing.
           </>
         ) : (
           <>
