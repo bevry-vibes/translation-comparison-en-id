@@ -131,6 +131,7 @@ export const PROVIDER_DISPLAY: Record<string, string> = {
   "DeepSeek (official API)": "DeepSeek",
   "Cloudflare Workers AI": "Cloudflare",
   QwenCloud: "QwenCloud",
+  Cline: "Cline",
   "Kagi Translate": "Kagi Translate",
   "Ollama (local)": "Ollama (local)",
 };

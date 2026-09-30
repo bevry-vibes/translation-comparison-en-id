@@ -99,11 +99,14 @@ Gotchas the hard way:
   FLORES sentence mentioning ISIS: `data_inspection_failed`, HTTP 400) and the qwen-mt/qwen-chat
   runs die there — the 2026-09-29 v2 en→id re-runs have no qwen-mt/qwen3.x legs for this reason
   (qwen-flash happened to pass). Another point for leaving QwenCloud.
-- **Cline's gateway** wraps responses in `{"data": …}` (the backend unwraps it) and
-  black-holes batch runs — single requests work, sweeps never returned. It was removed from
-  `scripts/run-providers.sh` and `eval/deno/providers.ts` on 2026-09-30 without ever producing
-  a measurable run; the same goes for OpenCode Zen (unfunded account). Re-add only if they can
-  actually serve a sweep.
+- **Cline's gateway** wraps responses in `{"data": …}` (the backend unwraps it) and reports
+  model-level failures as HTTP 200 + `{"error": …}` (both handled by the harness). The
+  2026-09-29 "black-holes requests" note was our bug, not theirs: the request loop had no
+  timeout, so one hung connection froze the sweep (fixed by the per-request ceiling in
+  `run_eval.ts`). **No credits are held on any optional gateway** — Cline legs use only its
+  zero-metered free-promotion ids (verified per model: paid ids like `fireworks/ember-1` meter
+  per request); OpenCode Zen is unusable via API entirely, its free tier rejects non-OpenCode
+  clients (`FreeTierError`).
 - **Prompt styles** (see the site's Prompts section for verbatim text): `engine` = the
   production translation-engine system instruction + raw source as the user message;
   `engine-preserve` = `engine` + an explicit keep-the-`[[n]]`-markers-verbatim

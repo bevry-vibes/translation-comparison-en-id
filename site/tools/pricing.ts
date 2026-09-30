@@ -71,6 +71,32 @@ export const PRICING: Record<string, Cost> = {
   "qwen-mt-flash": { input: 0.101, output: 0.28, unit: "M tokens", source: ALIBABA },
   "qwen-mt-plus": { input: 0.259, output: 0.775, unit: "M tokens", source: ALIBABA },
   "qwen-mt-lite": { input: 0.086, output: 0.229, unit: "M tokens", source: ALIBABA },
+  // Cline free-promotion ids (zero-metered at the gateway, 2026-09-30); the
+  // promos rotate, so re-verify before any paid-model leg — no credits held
+  "z-ai/glm-5.3-prime": {
+    input: 0,
+    output: 0,
+    unit: "M tokens",
+    source: "Cline free promotion (2026-09-30)",
+  },
+  "xiaomi/mimo-v2.6-flash": {
+    input: 0,
+    output: 0,
+    unit: "M tokens",
+    source: "Cline free promotion (2026-09-30)",
+  },
+  "cohere/command-a-plus": {
+    input: 0,
+    output: 0,
+    unit: "M tokens",
+    source: "Cline free promotion (2026-09-30)",
+  },
+  "upstage/solar-mini4": {
+    input: 0,
+    output: 0,
+    unit: "M tokens",
+    source: "Cline free promotion (2026-09-30)",
+  },
   // non-token billing
   "kagi-translate-web": {
     input: 15,

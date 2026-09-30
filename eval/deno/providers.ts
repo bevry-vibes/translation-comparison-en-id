@@ -10,10 +10,15 @@
  * key), and 4096 keeps reasoning-mandatory models (glm-5.3-flash) from
  * spending the whole budget on reasoning and returning empty content.
  *
- * Removed 2026-09-30: Cline ("cl-", its gateway black-holes batch runs and
- * never produced a measurable run) and OpenCode Zen ("oc-", account unfunded,
- * free-tier ids returned unavailable) — neither has results here; re-add only
- * if they can actually serve a sweep.
+ * Billing constraint (2026-09-30): we hold NO paid credits on Cline or
+ * OpenCode Zen, so only their free models are supported. Cline's free
+ * promotion ids answer without cost metadata while paid ids meter per
+ * request — verify before adding legs. OpenCode Zen stays out entirely: its
+ * free tier rejects non-OpenCode clients outright ("FreeTierError: free tier
+ * can only be used from within OpenCode"), so nothing is servable via API.
+ * The earlier "Cline black-holes requests" note was a harness artifact: the
+ * request loop had no timeout, so one hung connection froze the sweep —
+ * fixed by the per-request ceiling in run_eval.
  */
 
 export const OPENROUTER_REASON_OFF = { reasoning: { enabled: false } };
@@ -44,6 +49,17 @@ export const OPENAI_COMPAT: Record<string, OpenAiProvider> = {
     key_env: "DEEPSEEK_API_KEY",
     chat_kwargs: DEEPSEEK_THINK_OFF,
     max_tokens: GATEWAY_MAX_TOKENS,
+  },
+  "cl-": {
+    label: "Cline",
+    base_url: "https://api.cline.bot/api/v1",
+    key_env: "CLINE_API_KEY",
+    // heterogeneous upstreams: glm-5.3-prime's OpenRouter upstream 400s on a
+    // reasoning-disable attempt ("Reasoning is mandatory"), so no kwargs by
+    // default — models run with their upstream reasoning default
+    chat_kwargs: {},
+    max_tokens: GATEWAY_MAX_TOKENS,
+    note: "free-promotion models only (zero-metered ids; no credits held)",
   },
 };
 

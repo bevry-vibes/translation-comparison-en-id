@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-# Run the off-QwenCloud provider sweep: open-weight models served by OpenRouter
-# and DeepSeek (official), both directions, production `engine` prompt.
+# Run the off-QwenCloud provider sweep: open-weight models served by OpenRouter,
+# DeepSeek (official) and Cline (free-promotion ids only — no credits held on
+# any gateway), both directions, production `engine` prompt.
 #
-# Needs .env (gitignored) with OPENROUTER_API_KEY, DEEPSEEK_API_KEY.
-# The OpenCode Zen leg is not wired here: its account was unfunded and its free-tier
-# ids returned "Upstream request failed: Model is unavailable" (verified 2026-09-29);
-# re-add it if either changes. Cline was removed 2026-09-30: its gateway black-holes
-# batch runs and it never produced a measurable run.
+# Needs .env (gitignored) with OPENROUTER_API_KEY, DEEPSEEK_API_KEY, CLINE_API_KEY.
+# The OpenCode Zen leg is not wired here: its FREE TIER REJECTS NON-OPENCODE
+# CLIENTS ("FreeTierError: free tier can only be used from within OpenCode",
+# verified 2026-09-30), so nothing is servable via API. Cline's 2026-09-29
+# "black-holes requests" note was a harness artifact (no per-request timeout,
+# fixed in run_eval): its gateway answers fast; only zero-metered ids are used.
 # Thinking/reasoning is disabled where the gateway allows
 # (glm-5.3-flash's OpenRouter endpoint mandates reasoning; it runs with it on).
 # masked mode runs the same models over data/masked.jsonl with the `engine-preserve`
@@ -26,6 +28,7 @@ load_env
 
 OR_URL="https://openrouter.ai/api/v1"
 DS_URL="https://api.deepseek.com"
+CL_URL="https://api.cline.bot/api/v1"
 OR_REASON_OFF='{"reasoning":{"enabled":false}}'
 DS_THINK_OFF='{"thinking":{"type":"disabled"}}'
 
@@ -43,13 +46,17 @@ MODELS=(
   "openrouter|$OR_URL|OPENROUTER_API_KEY|z-ai/glm-5|or-glm-5|$OR_REASON_OFF"
   "deepseek|$DS_URL|DEEPSEEK_API_KEY|deepseek-flash|ds-deepseek-flash|$DS_THINK_OFF"
   "deepseek|$DS_URL|DEEPSEEK_API_KEY|deepseek-v4-pro|ds-deepseek-v4-pro|$DS_THINK_OFF"
+  "cline|$CL_URL|CLINE_API_KEY|z-ai/glm-5.3-prime|cl-glm-5.3-prime|"
+  "cline|$CL_URL|CLINE_API_KEY|xiaomi/mimo-v2.6-flash|cl-mimo-v2.6-flash|"
+  "cline|$CL_URL|CLINE_API_KEY|cohere/command-a-plus|cl-command-a-plus|"
+  "cline|$CL_URL|CLINE_API_KEY|upstage/solar-mini4|cl-solar-mini4|"
 )
 
 case "$DIRECTION" in
   id-en) DIRECTIONS=(id en) ;;
   en-id) DIRECTIONS=(en id) ;;
   both)  DIRECTIONS=(id en en id) ;;
-  *) echo "usage: scripts/run-providers.sh [openrouter|deepseek|all] [id-en|en-id|both] [plain|masked]"; exit 2 ;;
+  *) echo "usage: scripts/run-providers.sh [openrouter|deepseek|cline|all] [id-en|en-id|both] [plain|masked]"; exit 2 ;;
 esac
 
 case "$MODE" in
@@ -63,7 +70,7 @@ case "$MODE" in
     PROMPT=engine-preserve
     NAME_SUFFIX="-masked"
     ;;
-  *) echo "usage: scripts/run-providers.sh [openrouter|deepseek|all] [id-en|en-id|both] [plain|masked]"; exit 2 ;;
+  *) echo "usage: scripts/run-providers.sh [openrouter|deepseek|cline|all] [id-en|en-id|both] [plain|masked]"; exit 2 ;;
 esac
 
 TOTAL_LEGS=$(( ${#MODELS[@]} * ${#DIRECTIONS[@]} / 2 ))

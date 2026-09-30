@@ -31,6 +31,9 @@ import { OPENAI_COMPAT } from "./providers.ts";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 const DEFAULT_TESTSET = ROOT + "data/testset-v2.jsonl";
+// per-request ceiling; a hung gateway connection must fail over to retry,
+// not freeze the run (the original "Cline black-holes requests" observation)
+const REQUEST_TIMEOUT_MS = 180_000;
 const RESULTS = ROOT + "results";
 const LOCK_PATH = Deno.env.get("MTBENCH_LOCK") ??
   "/tmp/indonesian-mt-bench.lock";
@@ -147,6 +150,10 @@ async function postChatRetry(
           Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify(payload),
+        // a gateway that accepts the connection and never answers would
+        // otherwise hang the whole run: this is how the (wrong) "Cline
+        // black-holes requests" diagnosis happened — treat as transient
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       });
       const text = await response.text();
       let body: Record<string, unknown>;
@@ -182,12 +189,15 @@ async function postChatRetry(
       }
       return { body, waited };
     } catch (e) {
-      if (e instanceof TypeError) { // network-level failure: transient
+      const timedOut = e instanceof DOMException && e.name === "TimeoutError";
+      if (e instanceof TypeError || timedOut) { // network-level failure: transient
         const wait = Math.min(2.0 * 2 ** attempt, 30.0);
         if (attempt >= 5) throw e;
         waited += (performance.now() - started) / 1000 + wait;
         console.warn(
-          `[warn] ${e.message}; retry ${attempt + 1} in ${wait.toFixed(0)}s`,
+          `[warn] ${timedOut ? `request timed out after ${REQUEST_TIMEOUT_MS / 1000}s` : e.message}; retry ${
+            attempt + 1
+          } in ${wait.toFixed(0)}s`,
         );
         await new Promise((r) => setTimeout(r, wait * 1000));
         attempt++;
@@ -219,6 +229,12 @@ async function chatCompletion(
     ("choices" in response || typeof response.data !== "object"
       ? response
       : response.data) as Record<string, unknown>;
+  // Cline also reports model-level failures as HTTP 200 + {"error": ...}
+  if (payload.error !== undefined) {
+    throw new Error(
+      `gateway error envelope: ${JSON.stringify(payload.error).slice(0, 200)}`,
+    );
+  }
   const choice = (payload.choices as Record<string, unknown>[])[0];
   const message = choice.message as Record<string, unknown>;
   const content = (typeof message.content === "string" ? message.content : "")
