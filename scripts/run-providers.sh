@@ -37,13 +37,10 @@ DS_THINK_OFF='{"thinking":{"type":"disabled"}}'
 MODELS=(
   "openrouter|$OR_URL|OPENROUTER_API_KEY|qwen/qwen3-30b-a3b-instruct-2507|or-qwen3-30b-a3b-2507|"
   "openrouter|$OR_URL|OPENROUTER_API_KEY|qwen/qwen3-235b-a22b-2507|or-qwen3-235b-a22b-2507|"
-  "openrouter|$OR_URL|OPENROUTER_API_KEY|google/gemma-4-31b-it|or-gemma-4-31b-it|$OR_REASON_OFF"
   "openrouter|$OR_URL|OPENROUTER_API_KEY|nvidia/nemotron-3.5-lightning|or-nemotron-3.5-lightning|$OR_REASON_OFF"
   "openrouter|$OR_URL|OPENROUTER_API_KEY|deepseek/deepseek-v4-flash|or-deepseek-v4-flash|$OR_REASON_OFF"
   "openrouter|$OR_URL|OPENROUTER_API_KEY|qwen/qwen3.5-397b-a17b|or-qwen3.5-397b-a17b|$OR_REASON_OFF"
   "openrouter|$OR_URL|OPENROUTER_API_KEY|z-ai/glm-5.3-flash|or-glm-5.3-flash|"
-  "openrouter|$OR_URL|OPENROUTER_API_KEY|moonshotai/kimi-k2.5|or-kimi-k2.5|$OR_REASON_OFF"
-  "openrouter|$OR_URL|OPENROUTER_API_KEY|z-ai/glm-5|or-glm-5|$OR_REASON_OFF"
   "deepseek|$DS_URL|DEEPSEEK_API_KEY|deepseek-flash|ds-deepseek-flash|$DS_THINK_OFF"
   "deepseek|$DS_URL|DEEPSEEK_API_KEY|deepseek-v4-pro|ds-deepseek-v4-pro|$DS_THINK_OFF"
   "cline|$CL_URL|CLINE_API_KEY|z-ai/glm-5.3-prime|cl-glm-5.3-prime|"

@@ -61,6 +61,15 @@ export const OPENAI_COMPAT: Record<string, OpenAiProvider> = {
     max_tokens: GATEWAY_MAX_TOKENS,
     note: "free-promotion models only (zero-metered ids; no credits held)",
   },
+  "qc-": {
+    label: "QwenCloud",
+    base_url: "https://maas.qwencloudapi.com/compatible-mode/v1",
+    key_env: "QWENCLOUD_API_KEY",
+    // QwenCloud separates reasoning_content from content, so thinking models
+    // still yield clean content; no kwargs by default (provider defaults)
+    chat_kwargs: {},
+    max_tokens: GATEWAY_MAX_TOKENS,
+  },
 };
 
 // non-openai backends: replication metadata only (label lives in the site pipeline)

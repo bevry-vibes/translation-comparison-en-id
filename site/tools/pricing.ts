@@ -30,13 +30,13 @@ export const PRICING: Record<string, Cost> = {
     unit: "M tokens",
     source: MODELS_DEV,
   },
-  "google/gemma-4-31b-it": { input: 0.09, output: 0.34, unit: "M tokens", source: MODELS_DEV },
+  // google/gemma-4-31b-it, moonshotai/kimi-k2.5 and z-ai/glm-5 were dropped
+  // from the site on 2026-09-30 (no free-quota path to bracket verification;
+  // runs archived under results/archive/dropped-2026-09-30)
   "nvidia/nemotron-3.5-lightning": { input: 0.06, output: 0.16, unit: "M tokens", source: MODELS_DEV },
   "deepseek/deepseek-v4-flash": { input: 0.0763, output: 0.1526, unit: "M tokens", source: MODELS_DEV },
   "qwen/qwen3.5-397b-a17b": { input: 0.55, output: 3.5, unit: "M tokens", source: MODELS_DEV },
   "z-ai/glm-5.3-flash": { input: 0.15, output: 0.5, unit: "M tokens", source: MODELS_DEV },
-  "moonshotai/kimi-k2.5": { input: 0.45, output: 2.25, unit: "M tokens", source: MODELS_DEV },
-  "z-ai/glm-5": { input: 0.6, output: 1.92, unit: "M tokens", source: MODELS_DEV },
   // DeepSeek official API, via models.dev
   "deepseek-flash": { input: 0.15, output: 0.6, unit: "M tokens", source: MODELS_DEV },
   "deepseek-v4-pro": { input: 0.435, output: 0.87, unit: "M tokens", source: MODELS_DEV },
