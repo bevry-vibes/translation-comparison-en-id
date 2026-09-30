@@ -81,6 +81,118 @@
    "timestamp": "2026-09-29T16:38:15+00:00"
   },
   {
+   "label": "hymt2-1.8b-masked-enid",
+   "file": "hymt2-1.8b-masked-enid.json",
+   "model": "Hy-MT2-1.8B",
+   "prompt_style": "hymt2",
+   "backend": "ollama",
+   "direction": "en->id",
+   "passed": 10,
+   "total": 10,
+   "verdict": "PASS",
+   "restored_chrf": 80.07,
+   "restored_chrfpp": 78.56,
+   "restored_bleu": 51.56,
+   "failures": [],
+   "timestamp": "2026-09-30T15:36:00+00:00"
+  },
+  {
+   "label": "kagi-masked-enid",
+   "file": "kagi-masked-enid.json",
+   "model": "kagi-translate-web",
+   "prompt_style": "none",
+   "backend": "kagi",
+   "direction": "en->id",
+   "passed": 10,
+   "total": 10,
+   "verdict": "PASS",
+   "restored_chrf": 86.32,
+   "restored_chrfpp": 85.35,
+   "restored_bleu": 66.99,
+   "failures": [],
+   "timestamp": "2026-09-30T15:35:37+00:00"
+  },
+  {
+   "label": "qwen-flash-masked-enid",
+   "file": "qwen-flash-masked-enid.json",
+   "model": "qwen-flash",
+   "prompt_style": "engine-preserve",
+   "backend": "openai",
+   "direction": "en->id",
+   "passed": 10,
+   "total": 10,
+   "verdict": "PASS",
+   "restored_chrf": 83.59,
+   "restored_chrfpp": 82.41,
+   "restored_bleu": 60.15,
+   "failures": [],
+   "timestamp": "2026-09-30T15:29:40+00:00"
+  },
+  {
+   "label": "qwen-mt-flash-masked-enid",
+   "file": "qwen-mt-flash-masked-enid.json",
+   "model": "qwen-mt-flash",
+   "prompt_style": "none",
+   "backend": "qwen",
+   "direction": "en->id",
+   "passed": 10,
+   "total": 10,
+   "verdict": "PASS",
+   "restored_chrf": 84.26,
+   "restored_chrfpp": 83.45,
+   "restored_bleu": 62.99,
+   "failures": [],
+   "timestamp": "2026-09-30T15:25:02+00:00"
+  },
+  {
+   "label": "qwen-mt-lite-masked-enid",
+   "file": "qwen-mt-lite-masked-enid.json",
+   "model": "qwen-mt-lite",
+   "prompt_style": "none",
+   "backend": "qwen",
+   "direction": "en->id",
+   "passed": 10,
+   "total": 10,
+   "verdict": "PASS",
+   "restored_chrf": 87.72,
+   "restored_chrfpp": 87.12,
+   "restored_bleu": 69.2,
+   "failures": [],
+   "timestamp": "2026-09-30T15:25:07+00:00"
+  },
+  {
+   "label": "qwen-mt-plus-masked-enid",
+   "file": "qwen-mt-plus-masked-enid.json",
+   "model": "qwen-mt-plus",
+   "prompt_style": "none",
+   "backend": "qwen",
+   "direction": "en->id",
+   "passed": 10,
+   "total": 10,
+   "verdict": "PASS",
+   "restored_chrf": 82.76,
+   "restored_chrfpp": 81.94,
+   "restored_bleu": 60.02,
+   "failures": [],
+   "timestamp": "2026-09-30T15:24:54+00:00"
+  },
+  {
+   "label": "qwen-mt-turbo-masked-enid",
+   "file": "qwen-mt-turbo-masked-enid.json",
+   "model": "qwen-mt-turbo",
+   "prompt_style": "none",
+   "backend": "qwen",
+   "direction": "en->id",
+   "passed": 10,
+   "total": 10,
+   "verdict": "PASS",
+   "restored_chrf": 83.82,
+   "restored_chrfpp": 82.93,
+   "restored_bleu": 63.25,
+   "failures": [],
+   "timestamp": "2026-09-30T15:24:48+00:00"
+  },
+  {
    "label": "qc-qwen3-235b-a22b-instruct-2507-masked-enid",
    "file": "qc-qwen3-235b-a22b-instruct-2507-masked-enid.json",
    "model": "qwen3-235b-a22b-instruct-2507",
@@ -129,6 +241,54 @@
    "timestamp": "2026-09-30T08:41:42+00:00"
   },
   {
+   "label": "qwen3.5-flash-masked-enid",
+   "file": "qwen3.5-flash-masked-enid.json",
+   "model": "qwen3.5-flash",
+   "prompt_style": "engine-preserve",
+   "backend": "openai",
+   "direction": "en->id",
+   "passed": 10,
+   "total": 10,
+   "verdict": "PASS",
+   "restored_chrf": 83.04,
+   "restored_chrfpp": 82.46,
+   "restored_bleu": 61.92,
+   "failures": [],
+   "timestamp": "2026-09-30T15:22:25+00:00"
+  },
+  {
+   "label": "qwen3.6-flash-masked-enid",
+   "file": "qwen3.6-flash-masked-enid.json",
+   "model": "qwen3.6-flash",
+   "prompt_style": "engine-preserve",
+   "backend": "openai",
+   "direction": "en->id",
+   "passed": 10,
+   "total": 10,
+   "verdict": "PASS",
+   "restored_chrf": 83.29,
+   "restored_chrfpp": 82.8,
+   "restored_bleu": 66.39,
+   "failures": [],
+   "timestamp": "2026-09-30T15:24:42+00:00"
+  },
+  {
+   "label": "translategemma-4b-masked-enid",
+   "file": "translategemma-4b-masked-enid.json",
+   "model": "translategemma:4b",
+   "prompt_style": "translate_gemma",
+   "backend": "ollama",
+   "direction": "en->id",
+   "passed": 10,
+   "total": 10,
+   "verdict": "PASS",
+   "restored_chrf": 82.71,
+   "restored_chrfpp": 81.57,
+   "restored_bleu": 58.36,
+   "failures": [],
+   "timestamp": "2026-09-30T15:36:24+00:00"
+  },
+  {
    "label": "cl-solar-mini4-masked-enid",
    "file": "cl-solar-mini4-masked-enid.json",
    "model": "upstage/solar-mini4",
@@ -175,6 +335,105 @@
    "restored_bleu": 68.34,
    "failures": [],
    "timestamp": "2026-09-30T07:10:56+00:00"
+  },
+  {
+   "label": "cf-m2m100-1.2b-masked-enid",
+   "file": "cf-m2m100-1.2b-masked-enid.json",
+   "model": "@cf/meta/m2m100-1.2b",
+   "prompt_style": "none",
+   "backend": "cloudflare",
+   "direction": "en->id",
+   "passed": 1,
+   "total": 10,
+   "verdict": "FAIL",
+   "restored_chrf": 51.75,
+   "restored_chrfpp": 49.75,
+   "restored_bleu": 29.06,
+   "failures": [
+    {
+     "id": "masked-enid-01",
+     "failures": [
+      "missing token [[1]] (Petrus): expected 1, found 0",
+      "name did not survive restoration: \"Petrus\" expected 1, restored text has 0"
+     ],
+     "hypothesis": "[1 ] memimpin pertemuan mingguan komunitas di aula utama."
+    },
+    {
+     "id": "masked-enid-02",
+     "failures": [
+      "missing token [[2]] (Nanik): expected 1, found 0",
+      "name did not survive restoration: \"Nanik\" expected 1, restored text has 0"
+     ],
+     "hypothesis": "[8] Menyiapkan laporan keuangan yayasan pada akhir setiap bulan."
+    },
+    {
+     "id": "masked-enid-03",
+     "failures": [
+      "missing token [[0]] (Peace Place Pati): expected 1, found 0",
+      "name did not survive restoration: \"Peace Place Pati\" expected 1, restored text has 0"
+     ],
+     "hypothesis": "Maka dari itu, disarankan untuk mengkonsumsi buah-buahan yang mengandung vitamin C."
+    },
+    {
+     "id": "masked-enid-04",
+     "failures": [
+      "missing token [[4]] (Tito): expected 1, found 0",
+      "name did not survive restoration: \"Tito\" expected 1, restored text has 0"
+     ],
+     "hypothesis": "[8] Mencatat kegiatan komunitas melalui foto dan video pendek."
+    },
+    {
+     "id": "masked-enid-05",
+     "failures": [
+      "missing token [[3]] (Wiwit): expected 1, found 0",
+      "name did not survive restoration: \"Wiwit\" expected 1, restored text has 0"
+     ],
+     "hypothesis": "[8] Menanggapi pesan yang masuk dari situs web setiap pagi."
+    },
+    {
+     "id": "masked-enid-06",
+     "failures": [
+      "missing token [[0]] (Peace Place Pati): expected 1, found 0",
+      "missing token [[1]] (Petrus): expected 1, found 0",
+      "missing token [[2]] (Nanik): expected 1, found 0",
+      "name did not survive restoration: \"Peace Place Pati\" expected 1, restored text has 0",
+      "name did not survive restoration: \"Petrus\" expected 1, restored text has 0",
+      "name did not survive restoration: \"Nanik\" expected 1, restored text has 0"
+     ],
+     "hypothesis": "Maka dari itu, kami akan mengajak anda untuk berkunjung ke tempat-tempat wisata yang ada di Semarang."
+    },
+    {
+     "id": "masked-enid-07",
+     "failures": [
+      "missing token [[3]] (Wiwit): expected 1, found 0",
+      "missing token [[5]] (Ben): expected 1, found 0",
+      "name did not survive restoration: \"Wiwit\" expected 1, restored text has 0",
+      "name did not survive restoration: \"Ben\" expected 1, restored text has 0"
+     ],
+     "hypothesis": "[55] dan [33] menganjurkan agar peserta mendaftar sebelum tanggal 15."
+    },
+    {
+     "id": "masked-enid-08",
+     "failures": [
+      "missing token [[2]] (Nanik): expected 2, found 0",
+      "missing token [[4]] (Tito): expected 1, found 0",
+      "name did not survive restoration: \"Nanik\" expected 2, restored text has 0",
+      "name did not survive restoration: \"Tito\" expected 1, restored text has 0"
+     ],
+     "hypothesis": "Kemudian, ia meminta kepada para pengikutnya untuk memeriksa dan membacanya."
+    },
+    {
+     "id": "masked-enid-10",
+     "failures": [
+      "missing token [[0]] (Peace Place Pati): expected 1, found 0",
+      "missing token [[5]] (Ben): expected 1, found 0",
+      "name did not survive restoration: \"Peace Place Pati\" expected 1, restored text has 0",
+      "name did not survive restoration: \"Ben\" expected 1, restored text has 0"
+     ],
+     "hypothesis": "Pada tahun yang sama, Al-Qur’an juga menegaskan bahwa Al-Qur’an adalah kitab suci."
+    }
+   ],
+   "timestamp": "2026-09-30T15:35:51+00:00"
   },
   {
    "label": "glm-5.3-flash-masked-iden",
@@ -241,6 +500,118 @@
    "timestamp": "2026-09-29T16:38:04+00:00"
   },
   {
+   "label": "hymt2-1.8b-masked-iden",
+   "file": "hymt2-1.8b-masked-iden.json",
+   "model": "Hy-MT2-1.8B",
+   "prompt_style": "hymt2",
+   "backend": "ollama",
+   "direction": "id->en",
+   "passed": 10,
+   "total": 10,
+   "verdict": "PASS",
+   "restored_chrf": 77.15,
+   "restored_chrfpp": 75.02,
+   "restored_bleu": 49.86,
+   "failures": [],
+   "timestamp": "2026-09-30T15:34:06+00:00"
+  },
+  {
+   "label": "kagi-masked-iden",
+   "file": "kagi-masked-iden.json",
+   "model": "kagi-translate-web",
+   "prompt_style": "none",
+   "backend": "kagi",
+   "direction": "id->en",
+   "passed": 10,
+   "total": 10,
+   "verdict": "PASS",
+   "restored_chrf": 85.73,
+   "restored_chrfpp": 84.21,
+   "restored_bleu": 66.86,
+   "failures": [],
+   "timestamp": "2026-09-30T15:33:47+00:00"
+  },
+  {
+   "label": "qwen-flash-masked-iden",
+   "file": "qwen-flash-masked-iden.json",
+   "model": "qwen-flash",
+   "prompt_style": "engine-preserve",
+   "backend": "openai",
+   "direction": "id->en",
+   "passed": 10,
+   "total": 10,
+   "verdict": "PASS",
+   "restored_chrf": 79.48,
+   "restored_chrfpp": 78.14,
+   "restored_bleu": 58.73,
+   "failures": [],
+   "timestamp": "2026-09-30T15:29:36+00:00"
+  },
+  {
+   "label": "qwen-mt-flash-masked-iden",
+   "file": "qwen-mt-flash-masked-iden.json",
+   "model": "qwen-mt-flash",
+   "prompt_style": "none",
+   "backend": "qwen",
+   "direction": "id->en",
+   "passed": 10,
+   "total": 10,
+   "verdict": "PASS",
+   "restored_chrf": 79.48,
+   "restored_chrfpp": 78.23,
+   "restored_bleu": 60.29,
+   "failures": [],
+   "timestamp": "2026-09-30T15:24:58+00:00"
+  },
+  {
+   "label": "qwen-mt-lite-masked-iden",
+   "file": "qwen-mt-lite-masked-iden.json",
+   "model": "qwen-mt-lite",
+   "prompt_style": "none",
+   "backend": "qwen",
+   "direction": "id->en",
+   "passed": 10,
+   "total": 10,
+   "verdict": "PASS",
+   "restored_chrf": 81.47,
+   "restored_chrfpp": 79.08,
+   "restored_bleu": 57.82,
+   "failures": [],
+   "timestamp": "2026-09-30T15:25:05+00:00"
+  },
+  {
+   "label": "qwen-mt-plus-masked-iden",
+   "file": "qwen-mt-plus-masked-iden.json",
+   "model": "qwen-mt-plus",
+   "prompt_style": "none",
+   "backend": "qwen",
+   "direction": "id->en",
+   "passed": 10,
+   "total": 10,
+   "verdict": "PASS",
+   "restored_chrf": 79.36,
+   "restored_chrfpp": 78.23,
+   "restored_bleu": 59.86,
+   "failures": [],
+   "timestamp": "2026-09-30T15:24:50+00:00"
+  },
+  {
+   "label": "qwen-mt-turbo-masked-iden",
+   "file": "qwen-mt-turbo-masked-iden.json",
+   "model": "qwen-mt-turbo",
+   "prompt_style": "none",
+   "backend": "qwen",
+   "direction": "id->en",
+   "passed": 10,
+   "total": 10,
+   "verdict": "PASS",
+   "restored_chrf": 81.18,
+   "restored_chrfpp": 79.66,
+   "restored_bleu": 61.66,
+   "failures": [],
+   "timestamp": "2026-09-30T15:24:45+00:00"
+  },
+  {
    "label": "qc-qwen3-235b-a22b-instruct-2507-masked-iden",
    "file": "qc-qwen3-235b-a22b-instruct-2507-masked-iden.json",
    "model": "qwen3-235b-a22b-instruct-2507",
@@ -287,6 +658,38 @@
    "restored_bleu": 65.3,
    "failures": [],
    "timestamp": "2026-09-30T08:25:17+00:00"
+  },
+  {
+   "label": "qwen3.5-flash-masked-iden",
+   "file": "qwen3.5-flash-masked-iden.json",
+   "model": "qwen3.5-flash",
+   "prompt_style": "engine-preserve",
+   "backend": "openai",
+   "direction": "id->en",
+   "passed": 10,
+   "total": 10,
+   "verdict": "PASS",
+   "restored_chrf": 81.75,
+   "restored_chrfpp": 80.4,
+   "restored_bleu": 61.37,
+   "failures": [],
+   "timestamp": "2026-09-30T15:31:20+00:00"
+  },
+  {
+   "label": "qwen3.6-flash-masked-iden",
+   "file": "qwen3.6-flash-masked-iden.json",
+   "model": "qwen3.6-flash",
+   "prompt_style": "engine-preserve",
+   "backend": "openai",
+   "direction": "id->en",
+   "passed": 10,
+   "total": 10,
+   "verdict": "PASS",
+   "restored_chrf": 81.59,
+   "restored_chrfpp": 79.98,
+   "restored_bleu": 60.32,
+   "failures": [],
+   "timestamp": "2026-09-30T15:23:37+00:00"
   },
   {
    "label": "cl-solar-mini4-masked-iden",
@@ -360,6 +763,138 @@
     }
    ],
    "timestamp": "2026-09-29T16:31:12+00:00"
+  },
+  {
+   "label": "translategemma-4b-masked-iden",
+   "file": "translategemma-4b-masked-iden.json",
+   "model": "translategemma:4b",
+   "prompt_style": "translate_gemma",
+   "backend": "ollama",
+   "direction": "id->en",
+   "passed": 9,
+   "total": 10,
+   "verdict": "FAIL",
+   "restored_chrf": 73.26,
+   "restored_chrfpp": 71.34,
+   "restored_bleu": 43.18,
+   "failures": [
+    {
+     "id": "masked-iden-09",
+     "failures": [
+      "missing token [[1]] (Petrus): expected 2, found 0",
+      "name did not survive restoration: \"Petrus\" expected 2, restored text has 0"
+     ],
+     "hypothesis": "According to [1], the program has been running successfully since [1] took on the role of coordinator."
+    }
+   ],
+   "timestamp": "2026-09-30T15:34:38+00:00"
+  },
+  {
+   "label": "cf-m2m100-1.2b-masked-iden",
+   "file": "cf-m2m100-1.2b-masked-iden.json",
+   "model": "@cf/meta/m2m100-1.2b",
+   "prompt_style": "none",
+   "backend": "cloudflare",
+   "direction": "id->en",
+   "passed": 0,
+   "total": 10,
+   "verdict": "FAIL",
+   "restored_chrf": 50.36,
+   "restored_chrfpp": 48.01,
+   "restored_bleu": 17.71,
+   "failures": [
+    {
+     "id": "masked-iden-01",
+     "failures": [
+      "missing token [[1]] (Petrus): expected 1, found 0",
+      "name did not survive restoration: \"Petrus\" expected 1, restored text has 0"
+     ],
+     "hypothesis": "[1] Leading weekly community meetings in the main room."
+    },
+    {
+     "id": "masked-iden-02",
+     "failures": [
+      "missing token [[2]] (Nanik): expected 1, found 0",
+      "name did not survive restoration: \"Nanik\" expected 1, restored text has 0"
+     ],
+     "hypothesis": "[2] Preparation of the financial statements of the Foundation at the end of each month."
+    },
+    {
+     "id": "masked-iden-03",
+     "failures": [
+      "missing token [[0]] (Peace Place Pati): expected 1, found 0",
+      "name did not survive restoration: \"Peace Place Pati\" expected 1, restored text has 0"
+     ],
+     "hypothesis": "[8] Open the registration of peace workshops for the youth in Pati."
+    },
+    {
+     "id": "masked-iden-04",
+     "failures": [
+      "missing token [[4]] (Tito): expected 1, found 0",
+      "name did not survive restoration: \"Tito\" expected 1, restored text has 0"
+     ],
+     "hypothesis": "[4] Document community activities through photos and short videos."
+    },
+    {
+     "id": "masked-iden-05",
+     "failures": [
+      "missing token [[3]] (Wiwit): expected 1, found 0",
+      "name did not survive restoration: \"Wiwit\" expected 1, restored text has 0"
+     ],
+     "hypothesis": "Reply to messages coming through the site every morning."
+    },
+    {
+     "id": "masked-iden-06",
+     "failures": [
+      "missing token [[0]] (Peace Place Pati): expected 1, found 0",
+      "missing token [[1]] (Petrus): expected 1, found 0",
+      "missing token [[2]] (Nanik): expected 1, found 0",
+      "name did not survive restoration: \"Peace Place Pati\" expected 1, restored text has 0",
+      "name did not survive restoration: \"Petrus\" expected 1, restored text has 0",
+      "name did not survive restoration: \"Nanik\" expected 1, restored text has 0"
+     ],
+     "hypothesis": "[1 ] and [2 ] will represent [0] at the meeting between communities in Semarang."
+    },
+    {
+     "id": "masked-iden-07",
+     "failures": [
+      "missing token [[3]] (Wiwit): expected 1, found 0",
+      "missing token [[5]] (Ben): expected 1, found 0",
+      "name did not survive restoration: \"Wiwit\" expected 1, restored text has 0",
+      "name did not survive restoration: \"Ben\" expected 1, restored text has 0"
+     ],
+     "hypothesis": "[55] and [36] recommends that participants register before the 15th."
+    },
+    {
+     "id": "masked-iden-08",
+     "failures": [
+      "missing token [[2]] (Nanik): expected 2, found 0",
+      "missing token [[4]] (Tito): expected 1, found 0",
+      "name did not survive restoration: \"Nanik\" expected 2, restored text has 0",
+      "name did not survive restoration: \"Tito\" expected 1, restored text has 0"
+     ],
+     "hypothesis": "[12] Ask [44] to record the activities, then [22] look at them again."
+    },
+    {
+     "id": "masked-iden-09",
+     "failures": [
+      "missing token [[1]] (Petrus): expected 2, found 0",
+      "name did not survive restoration: \"Petrus\" expected 2, restored text has 0"
+     ],
+     "hypothesis": "The program has been running well since it became a coordinator."
+    },
+    {
+     "id": "masked-iden-10",
+     "failures": [
+      "missing token [[0]] (Peace Place Pati): expected 1, found 0",
+      "missing token [[5]] (Ben): expected 1, found 0",
+      "name did not survive restoration: \"Peace Place Pati\" expected 1, restored text has 0",
+      "name did not survive restoration: \"Ben\" expected 1, restored text has 0"
+     ],
+     "hypothesis": "The annual report [0] was written by [5] along with the media team."
+    }
+   ],
+   "timestamp": "2026-09-30T15:33:58+00:00"
   }
  ]
 }

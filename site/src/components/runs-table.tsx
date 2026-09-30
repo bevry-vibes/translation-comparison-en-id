@@ -177,7 +177,7 @@ function modelCell(run: RunRow) {
 /** why a model has no bracket-scheme survival measurement */
 function notMeasuredReason(run: RunRow): string {
   if (run.provider === 'OpenRouter' || run.canonical?.runs.some((p) => p.provider === 'OpenRouter')) {
-    return 'blocked: OpenRouter credits — the bracket-scheme masked sweep is pending'
+    return 'no free-quota path: OpenRouter holds no credits and its :free variants are excluded by the account guardrails'
   }
   return 'no masked run on the current [[n]] scheme yet'
 }

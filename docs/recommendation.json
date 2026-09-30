@@ -48,10 +48,12 @@
     },
     {
       "models": [
+        "qwen-mt-turbo",
         "qwen-mt-flash",
-        "qwen-mt-plus"
+        "qwen-mt-plus",
+        "qwen-mt-lite"
       ],
-      "reason": "fail id->en masked survival (2/10, 1/10); qwen-mt-lite passes raw but inherits the family's non-raisable caps and single-vendor retirement risk"
+      "reason": "their PUA-era survival failures were the token scheme, not the models — on [[n]] brackets the whole qwen-mt family passes 10/10 both directions (re-measured 2026-09-30). They stay out anyway: their plain en->id runs die at QwenCloud's data-inspection filter so no complete quality ranking is possible, the family carries non-raisable rate caps and single-vendor retirement risk, and the production qwen-mt-turbo retires 2026-10-10"
     },
     {
       "models": [

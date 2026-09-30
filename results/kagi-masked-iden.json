@@ -1,0 +1,105 @@
+{
+  "label": "kagi-masked-iden",
+  "backend": "kagi",
+  "model": "kagi-translate-web",
+  "prompt_style": "none",
+  "src": "id",
+  "tgt": "en",
+  "testset": "masked.jsonl",
+  "pairs": 10,
+  "metrics": {
+    "bleu": 27.7,
+    "chrf": 66.62,
+    "chrfpp": 64.55
+  },
+  "metric_backend": "local",
+  "exact_match_rate": 0,
+  "seconds_total": 48.02,
+  "seconds_per_sentence": 4.802,
+  "chrF_by_category": {
+    "masked-name": 67.06
+  },
+  "timestamp": "2026-09-30T15:33:47+00:00",
+  "samples": [
+    {
+      "id": "masked-iden-01",
+      "category": "masked-name",
+      "source": "[[1]] memimpin rapat mingguan komunitas di ruang utama.",
+      "reference": "Petrus leads the community's weekly meeting in the main hall.",
+      "hypothesis": "[[1]] leads the community’s weekly meeting in the main room.",
+      "chrf": 71.48
+    },
+    {
+      "id": "masked-iden-02",
+      "category": "masked-name",
+      "source": "[[2]] menyiapkan laporan keuangan yayasan pada akhir setiap bulan.",
+      "reference": "Nanik prepares the foundation's financial report at the end of every month.",
+      "hypothesis": "[[2]] prepares the foundation’s financial report at the end of every month.",
+      "chrf": 86.09
+    },
+    {
+      "id": "masked-iden-03",
+      "category": "masked-name",
+      "source": "[[0]] membuka pendaftaran lokakarya perdamaian bagi para pemuda di Pati.",
+      "reference": "Peace Place Pati opens registration for the peace workshop for the youth of Pati.",
+      "hypothesis": "[[0]] opens registration for a peace workshop for young people in Pati.",
+      "chrf": 55.28
+    },
+    {
+      "id": "masked-iden-04",
+      "category": "masked-name",
+      "source": "[[4]] mendokumentasikan kegiatan komunitas melalui foto dan video pendek.",
+      "reference": "Tito documents the community's activities through photos and short videos.",
+      "hypothesis": "[[4]] documents community activities through photos and short videos.",
+      "chrf": 78.44
+    },
+    {
+      "id": "masked-iden-05",
+      "category": "masked-name",
+      "source": "[[3]] menjawab pesan yang masuk melalui situs setiap pagi.",
+      "reference": "Wiwit answers the messages that arrive through the website every morning.",
+      "hypothesis": "[[3]] replies to messages received through the website every morning.",
+      "chrf": 59.01
+    },
+    {
+      "id": "masked-iden-06",
+      "category": "masked-name",
+      "source": "[[1]] dan [[2]] akan mewakili [[0]] pada pertemuan antar-komunitas di Semarang.",
+      "reference": "Petrus and Nanik will represent Peace Place Pati at the inter-community meeting in Semarang.",
+      "hypothesis": "[[1]] and [[2]] will represent [[0]] at the intercommunity meeting in Semarang.",
+      "chrf": 58.39
+    },
+    {
+      "id": "masked-iden-07",
+      "category": "masked-name",
+      "source": "[[5]] dan [[3]] menyarankan agar para peserta mendaftar sebelum tanggal 15.",
+      "reference": "Ben and Wiwit suggest that the participants register before the 15th.",
+      "hypothesis": "[[5]] and [[3]] suggest that participants register before the 15th.",
+      "chrf": 72.65
+    },
+    {
+      "id": "masked-iden-08",
+      "category": "masked-name",
+      "source": "[[2]] meminta [[4]] mengarsipkan foto-foto kegiatan, lalu [[2]] memeriksanya kembali.",
+      "reference": "Nanik asked Tito to archive the activity photos, and then Nanik reviewed them.",
+      "hypothesis": "[[2]] asked [[4]] to archive the activity photos, then [[2]] reviewed them.",
+      "chrf": 61.83
+    },
+    {
+      "id": "masked-iden-09",
+      "category": "masked-name",
+      "source": "Menurut [[1]], program ini berjalan dengan baik sejak [[1]] menjadi koordinator.",
+      "reference": "According to Petrus, the programme has run well since Petrus became the coordinator.",
+      "hypothesis": "According to [[1]], this program has been running well since [[1]] became the coordinator.",
+      "chrf": 59
+    },
+    {
+      "id": "masked-iden-10",
+      "category": "masked-name",
+      "source": "Laporan tahunan [[0]] ditulis oleh [[5]] bersama tim mediasi.",
+      "reference": "The annual report of Peace Place Pati was written by Ben together with the mediation team.",
+      "hypothesis": "The annual report [[0]] was written by [[5]] together with the mediation team.",
+      "chrf": 68.46
+    }
+  ]
+}
