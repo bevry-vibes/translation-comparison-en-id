@@ -122,16 +122,19 @@ export function canonicalFor(modelId: string): CanonicalModel | undefined {
   );
 }
 
-/** short badge codes for the providers that appear in results/ */
-export const PROVIDER_CODES: Record<string, string> = {
-  OpenRouter: "OR",
-  "DeepSeek (official API)": "DS",
-  "Cloudflare Workers AI": "CF",
-  "Qwen MT (hosted API)": "QC",
-  "Kagi Translate": "Kagi",
-  "Local (Ollama)": "local",
+/** human display names for the providers that appear in results/ — the site
+ * renders these verbatim everywhere (badges, tooltips, footnotes); the
+ * registry keys and runRow.provider may carry qualifiers ("official API")
+ * that the display name drops */
+export const PROVIDER_DISPLAY: Record<string, string> = {
+  OpenRouter: "OpenRouter",
+  "DeepSeek (official API)": "DeepSeek",
+  "Cloudflare Workers AI": "Cloudflare",
+  QwenCloud: "QwenCloud",
+  "Kagi Translate": "Kagi Translate",
+  "Ollama (local)": "Ollama (local)",
 };
 
-export function providerCode(provider: string): string {
-  return PROVIDER_CODES[provider] ?? provider;
+export function providerDisplay(provider: string): string {
+  return PROVIDER_DISPLAY[provider] ?? provider;
 }

@@ -1,6 +1,6 @@
 {
-  "updated": "2026-09-29",
-  "summary": "qwen-mt-turbo (the production translator) retires 2026-10-10. A successor must pass strict masked-name token survival, match turbo-class quality, and fit the 5-minute cron budget. The 2026-09-29 off-QwenCloud provider sweep re-measured 12 open-weight models on both directions plus the masked set. Disqualified below does NOT mean bad at translation \u2014 the DeepSeek models are the best pure translators measured \u2014 it means unusable for THIS production pipeline, which masks people's names before translation and restores them afterwards. The 2026-09-29 identity spike (docs/identity-spike.md) then showed the PUA token scheme itself breaks weak tokenizers: switching the masks to ASCII brackets [[n]] fixes glm-4.7-flash, glm-5.3-flash and nemotron outright, so masking-scheme migration + re-measurement is the next step.",
+  "updated": "2026-09-30",
+  "summary": "qwen-mt-turbo (the production translator) retires 2026-10-10. A successor must pass strict masked-name token survival, match turbo-class quality, fit the 5-minute cron budget, AND price sensibly — every entry below now carries its list price so quality and cost can be weighed together. The masked set uses ASCII [[n]] markers since the 2026-09-29 identity spike (the PUA scheme broke GLM-family and nemotron tokenizers). DeepSeek (both models) and glm-5.3-flash re-passed 10/10 on brackets and are reinstated; the OpenRouter models' bracket re-measurement is still blocked on OpenRouter credits, and identical open-weight models are now verified equivalent across providers (within ~3 chrF) and collapsed into one row on the site. Disqualified below does NOT mean bad at translation — the DeepSeek models are the best pure translators measured — it means unusable for THIS production pipeline, which masks people's names before translation and restores them afterwards.",
   "primary": {
     "model": "qwen/qwen3-235b-a22b-2507",
     "provider": "OpenRouter",
@@ -10,7 +10,7 @@
       "73.71 chrF id->en (+1.8 over the retiring qwen-mt-turbo, +2.0 over the QwenCloud interim pick)",
       "84.66 chrF en->id (turbo-class; direction re-measured on the balanced 78-segment set)",
       "non-thinking: no reasoning leakage, no mid-sweep stalls, 1.4-1.6 s/segment",
-      "cheapest safe model measured: a full two-direction sweep costs about two cents"
+      "cheapest token-safe model measured: $0.0875 in / $0.35 out per M tokens (models.dev) — a full two-direction 78-segment sweep costs about two cents; only gemma-4-31b-it lists comparably ($0.09/$0.34) among the 10/10-survival models"
     ]
   },
   "alternatives": [
@@ -18,31 +18,31 @@
       "model": "z-ai/glm-5",
       "provider": "OpenRouter",
       "role": "premium alternative",
-      "why": "best token-safe id->en off QwenCloud (74.21, Kagi-level) at 5-8x the price; take it if id->en quality is worth the premium or as a second vendor for drift checks"
+      "why": "best token-safe id->en off QwenCloud (74.21, Kagi-level), but the price buys it: $0.60/$1.92 per M tokens — 5-8x the primary per sweep. Take it only if id->en quality is worth the premium or as a second vendor for drift checks"
     },
     {
       "model": "moonshotai/kimi-k2.5",
       "provider": "OpenRouter",
       "role": "failover",
-      "why": "73.39 id->en, 10/10 survival both directions, maker-diverse from the primary"
+      "why": "73.39 id->en, 10/10 survival both directions, maker-diverse from the primary — priced mid-pack at $0.45/$2.25 per M (roughly 5x the primary per sweep)"
     },
     {
       "model": "google/gemma-4-31b-it",
       "provider": "OpenRouter",
       "role": "failover alternative",
-      "why": "72.72 id->en, 10/10 survival both directions, permissive Gemma licence"
+      "why": "72.72 id->en, 10/10 survival both directions, permissive Gemma licence, and the only price-peer of the primary ($0.09/$0.34 per M) — the budget-switchover pick if OpenRouter pricing shifts"
     },
     {
       "model": "deepseek-flash",
       "provider": "DeepSeek (official API)",
       "role": "reinstated quality pick — pending the full re-sweep",
-      "why": "the best raw translation quality measured (77.10 chrF id->en, 87.05 en->id) now also survives 10/10 in both directions on the [[n]] bracket scheme; its original disqualification was the PUA token scheme plus 1024-token truncation, both fixed on 2026-09-29 (docs/identity-spike.md). Formal ranking waits until the OpenRouter models are re-measured on brackets."
+      "why": "the best raw translation quality measured (77.10 chrF id->en, 87.05 en->id) now also survives 10/10 in both directions on the [[n]] bracket scheme; its original disqualification was the PUA token scheme plus 1024-token truncation, both fixed on 2026-09-29 (docs/identity-spike.md). Cost cuts both ways: $0.15/$0.60 per M at the official API (2x the primary), but the same open weights list at $0.0763/$0.1526 on OpenRouter and verify within ~3 chrF of first-party — the cheapest listing of any token-safe model once measured. The same weights on Cloudflare cost 3x first-party ($0.44/$1.32): provider choice matters more than model choice here. Formal ranking waits until the OpenRouter models are re-measured on brackets"
     },
     {
       "model": "z-ai/glm-5.3-flash",
       "provider": "Cloudflare Workers AI",
       "role": "reinstated after the scheme fix — pending re-rank",
-      "why": "10/10 bracket survival in both directions (was 7/10 on PUA tokens); its endpoint still mandates reasoning, so it pays thinking tokens on every call. deepseek-v4-pro also passes 10/10 both directions."
+      "why": "10/10 bracket survival in both directions (was 7/10 on PUA tokens). List price $0.15/$0.50 per M looks mid-pack, but both known hosts mandate reasoning, so every call bills ~1000+ hidden thinking tokens as output — effective cost roughly 2-3x list, with Cloudflare's serving also ~3x slower than OpenRouter's (11.5 vs 4.0 s/sentence). deepseek-v4-pro also passes 10/10 both directions"
     }
   ],
   "disqualified": [
@@ -58,10 +58,18 @@
         "qwen-mt-plus"
       ],
       "reason": "fail id->en masked survival (2/10, 1/10); qwen-mt-lite passes raw but inherits the family's non-raisable caps and single-vendor retirement risk"
+    },
+    {
+      "models": [
+        "@cf/qwen/qwen3-30b-a3b-fp8"
+      ],
+      "reason": "same open weights as or-qwen3-30b-a3b-2507 but Cloudflare's fp8 build measures 5.8 chrF below OpenRouter's full-precision serving en->id (67.84 vs 73.65) — quantization damage beyond the ~3 chrF cross-provider parity band, so it is not collapsed with its full-precision twin and is not a candidate"
     }
   ],
   "caveats": [
-    "2026-09-29 scheme migration: the masked set now uses ASCII [[n]] markers (the identity spike showed PUA tokens break GLM-family and nemotron tokenizers); PUA-era survival rows are archived and not comparable. The OpenRouter models keep their old PUA-era survival numbers until the account is funded again \u2014 their brackets survival is not yet measured (gemma-4-31b-it excepted: 10/10 all schemes in the spike).",
+    "2026-09-30 cross-provider parity: identical open-weight models measured at several providers land within ~3 chrF per direction (temperature 0 leaves serving-stack variance; ~0.5 chrF run-to-run nondeterminism on Cloudflare). The site collapses such runs into one row — primary provider's scores, provider badges, cheapest listing in the cost cell (site/tools/models.ts holds the rules)",
+    "2026-09-29 scheme migration: the masked set now uses ASCII [[n]] markers (the identity spike showed PUA tokens break GLM-family and nemotron tokenizers); PUA-era survival rows are archived and not comparable. The OpenRouter models keep their old PUA-era survival numbers until the account is funded again — their brackets survival is not yet measured (gemma-4-31b-it excepted: 10/10 all schemes in the spike)",
+    "all prices are list (models.dev + provider catalogues, 2026-09-29/30) per M tokens in/out; the site's Cost column shows the cheapest provider per collapsed model — check it before any spending decision, prices drift",
     "token-safe models run 1.4-2.7 s/segment sequential: a 300-segment entry needs 3-4 concurrent requests to hold the 5-minute cron budget; QwenCloud's qwen-flash (0.46 s/s, 10/10 survival, raisable limits) remains the sub-minute option if staying on QwenCloud",
     "the survival assertion + review flags stay regardless of model: the turbo baseline production trusted also failed the adversarial probe set",
     "qwen-mt-turbo retires 2026-10-10; until the switch, it remains the production model"
@@ -70,7 +78,8 @@
     "2026-09-28: qwen-mt-flash recommended on plain chrF alone",
     "2026-09-29 (morning): superseded by masked-name token survival; qwen-flash + engine-preserve picked as the QwenCloud interim",
     "2026-09-29 (day): off-QwenCloud provider sweep; qwen3-235b-a22b-2507 on OpenRouter becomes the primary recommendation",
-    "2026-09-29 (evening): identity spike; an earlier 'destroys masked names 0/10' verdict for glm-4.7-flash was a harness parsing bug, and the real finding is that the PUA token scheme itself breaks GLM-family and nemotron tokenizers \u2014 ASCII brackets [[n]] fix them outright (docs/identity-spike.md)",
-    "2026-09-29 (night): mask scheme migrated to [[n]]; DeepSeek (both models) and glm-5.3-flash pass 10/10 both directions and are reinstated pending the full re-sweep; the old DeepSeek disqualification was the PUA scheme plus 1024-token truncation"
+    "2026-09-29 (evening): identity spike; an earlier 'destroys masked names 0/10' verdict for glm-4.7-flash was a harness parsing bug, and the real finding is that the PUA token scheme itself breaks GLM-family and nemotron tokenizers — ASCII brackets [[n]] fix them outright (docs/identity-spike.md)",
+    "2026-09-29 (night): mask scheme migrated to [[n]]; DeepSeek (both models) and glm-5.3-flash pass 10/10 both directions and are reinstated pending the full re-sweep; the old DeepSeek disqualification was the PUA scheme plus 1024-token truncation",
+    "2026-09-30: Cloudflare now hosts deepseek v4-flash/v4-pro; the missing provider legs measured within the parity band and same-model runs collapsed into single rows (qwen3-30b fp8 excluded); recommendation entries now carry list prices and the fp8 qwen3-30b join the disqualified list"
   ]
 }

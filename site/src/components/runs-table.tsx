@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/table'
 import { SamplesDialog } from '@/components/samples-dialog'
 import { heatText, renderTokens } from '@/lib/data'
-import { providerCode } from '../../tools/models.ts'
+import { providerDisplay } from '../../tools/models.ts'
 import type { Cost, RunRow, SurvivalRow } from '@/types'
 
 export type TableMode = 'quality' | 'survival'
@@ -125,12 +125,12 @@ function costCell(run: RunRow) {
   if (run.canonical) {
     const listings = run.canonical.runs
       .map((p) => {
-        if (!p.cost) return `${providerCode(p.provider)}: no listing`
+        if (!p.cost) return `${providerDisplay(p.provider)}: no listing`
         const value =
           p.cost.unit === 'M characters'
             ? `${formatCost(p.cost.input)}/M chars`
             : `${formatCost(p.cost.input)}/${p.cost.output === null ? '—' : formatCost(p.cost.output)}`
-        return `${providerCode(p.provider)} ${value}${p.note ? ` (${p.note})` : ''}`
+        return `${providerDisplay(p.provider)} ${value}${p.note ? ` (${p.note})` : ''}`
       })
       .join(' · ')
     title = `Cheapest of ${run.canonical.runs.length} providers — ${listings} · per ${cost.unit}`
@@ -159,19 +159,27 @@ function modelCell(run: RunRow) {
           <Badge
             key={p.label}
             variant={p.provider === run.canonical!.primary_provider ? 'default' : 'outline'}
-            className="px-1 py-0 font-mono text-[10px]"
+            className="px-1.5 py-0 text-[10px]"
             title={
               `${p.provider} — ${p.model_id} · chrF ${p.metrics.chrf.toFixed(2)}` +
               (p.note ? ` · ${p.note}` : '') +
               (p.provider === run.canonical!.primary_provider ? ' · scores shown' : '')
             }
           >
-            {providerCode(p.provider)}
+            {providerDisplay(p.provider)}
           </Badge>
         ))}
       </div>
     </div>
   )
+}
+
+/** why a model has no bracket-scheme survival measurement */
+function notMeasuredReason(run: RunRow): string {
+  if (run.provider === 'OpenRouter' || run.canonical?.runs.some((p) => p.provider === 'OpenRouter')) {
+    return 'blocked: OpenRouter credits — the bracket-scheme masked sweep is pending'
+  }
+  return 'no masked run on the current [[n]] scheme yet'
 }
 
 /** best masked variant of a model: most surviving segments, then higher restored chrF */
@@ -334,7 +342,17 @@ export function RunsTable({
       value: (r) => bestVariant(survivalByModel.get(r.canonical?.id ?? r.model) ?? [])?.passed ?? -1,
       render: (r) => {
         const variants = survivalByModel.get(r.canonical?.id ?? r.model) ?? []
-        if (variants.length === 0) return <span className="text-muted-foreground">—</span>
+        if (variants.length === 0) {
+          const reason = notMeasuredReason(r)
+          return (
+            <span
+              className="inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground"
+              title={reason}
+            >
+              not measured
+            </span>
+          )
+        }
         const multiProvider = new Set(variants.map((v) => v.provider)).size > 1
         return (
           <div className="flex flex-col items-end gap-1">
@@ -345,10 +363,10 @@ export function RunsTable({
                   {variants.length > 1 && (
                     <Badge
                       variant="outline"
-                      className="px-1 py-0 font-mono text-[10px]"
+                      className="px-1.5 py-0 text-[10px]"
                       title={`${variant.provider} — ${variant.label}`}
                     >
-                      {multiProvider ? `${providerCode(variant.provider)}·` : ''}
+                      {multiProvider ? `${providerDisplay(variant.provider)} · ` : ''}
                       {variant.prompt_style}
                     </Badge>
                   )}
@@ -530,9 +548,10 @@ export function RunsTable({
             Survival is measured on the separate 10-segment masked-name set (names wrapped in
             protection tokens), usually with the{' '}
             <span className="font-mono">engine-preserve</span> instruction — not on the plain set,
-            whose chrF order the rows keep. Where a model ran the masked set with several prompts,
-            every variant is listed. Click a failure count for the per-segment detail, or a row for
-            its plain-set samples.
+            whose chrF order the rows keep. Where a model ran the masked set with several prompts
+            or at several providers, every variant is listed. <span className="font-medium">Not
+            measured</span> means no bracket-scheme masked run exists yet (hover for the reason).
+            Click a failure count for the per-segment detail, or a row for its plain-set samples.
           </>
         )}
       </p>

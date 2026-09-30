@@ -100,7 +100,10 @@ Gotchas the hard way:
   runs die there — the 2026-09-29 v2 en→id re-runs have no qwen-mt/qwen3.x legs for this reason
   (qwen-flash happened to pass). Another point for leaving QwenCloud.
 - **Cline's gateway** wraps responses in `{"data": …}` (the backend unwraps it) and
-  black-holes batch runs — single requests work; do not use it for sweeps.
+  black-holes batch runs — single requests work, sweeps never returned. It was removed from
+  `scripts/run-providers.sh` and `eval/deno/providers.ts` on 2026-09-30 without ever producing
+  a measurable run; the same goes for OpenCode Zen (unfunded account). Re-add only if they can
+  actually serve a sweep.
 - **Prompt styles** (see the site's Prompts section for verbatim text): `engine` = the
   production translation-engine system instruction + raw source as the user message;
   `engine-preserve` = `engine` + an explicit keep-the-`[[n]]`-markers-verbatim

@@ -159,9 +159,12 @@ export function SamplesDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] w-[95vw] max-w-5xl sm:max-w-5xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="font-mono text-base">{run.model}</DialogTitle>
+          <DialogTitle className="font-mono text-base">
+            {run.canonical?.name ?? run.model}
+          </DialogTitle>
           <DialogDescription>
-            {run.label}.json — click outside or press escape to close
+            {run.model} at {run.provider} — {run.label}.json. Click outside or press escape to
+            close.
           </DialogDescription>
         </DialogHeader>
 

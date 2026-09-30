@@ -15,7 +15,11 @@ import {
   ENGINE_PRESERVE_SYSTEM,
   ENGINE_SYSTEM,
 } from "../../eval/deno/prompts.ts";
-import { BACKENDS, openaiProviderFor } from "../../eval/deno/providers.ts";
+import {
+  BACKENDS,
+  openaiProviderFor,
+  QWENCLOUD_CHAT_MODELS,
+} from "../../eval/deno/providers.ts";
 import type { CanonicalInfo } from "../src/types.ts";
 import { canonicalFor } from "./models.ts";
 import { priceOf, type Cost } from "./pricing.ts";
@@ -69,6 +73,12 @@ function providerOf(
 ): { provider: string; hosted: boolean } {
   const openai = openaiProviderFor(payload.label);
   if (openai) return { provider: openai.label, hosted: true };
+  if (
+    payload.backend === "openai" &&
+    QWENCLOUD_CHAT_MODELS.has(payload.model)
+  ) {
+    return { provider: BACKENDS.qwen.label, hosted: true };
+  }
   const info = BACKENDS[payload.backend];
   return {
     provider: info?.label ?? payload.backend,
@@ -93,7 +103,11 @@ function replicationFor(payload: RunPayload): Record<string, unknown> {
       key_env: openai.key_env,
       chat_kwargs: openai.chat_kwargs,
       max_tokens: openai.max_tokens,
-      notes: openai.note ? [openai.note] : [],
+      notes: [
+        // "openai" is the OpenAI-compatible chat protocol flag, not OpenAI the company
+        `the backend flag selects the OpenAI-compatible chat protocol; the gateway is ${openai.label}`,
+        ...((openai.note ? [openai.note] : []) as string[]),
+      ],
     };
   }
   if (backend === "qwen") {
@@ -138,6 +152,18 @@ function replicationFor(payload: RunPayload): Record<string, unknown> {
         `${deno} --backend ollama --model '${model}' --prompt-style ${style} --src ${src} --tgt ${tgt} --name ${label}`,
       base_url: "http://127.0.0.1:11434",
       notes: ["local model: the harness holds the one-benchmark run lock"],
+    };
+  }
+  if (backend === "openai" && QWENCLOUD_CHAT_MODELS.has(model)) {
+    return {
+      command:
+        `${deno} --backend openai --model ${model} --base-url ${BACKENDS.qwen.base_url} ` +
+        `--api-key "\$QWENCLOUD_API_KEY" --prompt-style ${style} --src ${src} --tgt ${tgt} --name ${label}`,
+      base_url: BACKENDS.qwen.base_url,
+      key_env: BACKENDS.qwen.key_env,
+      notes: [
+        "the backend flag selects the OpenAI-compatible chat protocol; the gateway is QwenCloud",
+      ],
     };
   }
   void py;
